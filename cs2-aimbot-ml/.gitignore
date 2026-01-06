@@ -1,0 +1,41 @@
+# Data
+data/raw/
+data/labeled/
+data/train/
+data/val/
+
+# Models
+models/
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# TensorBoard
+runs/
+events.out.tfevents.*
