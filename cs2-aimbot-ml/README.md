@@ -1,120 +1,148 @@
-# CS2 AI Aimbot - Complete Training System
+# CS2 AI Aimbot - Team-Aware System 🎯
 
-Ein Machine Learning Projekt zum Trainieren einer KI die Gegner und Köpfe in CS2 erkennt.
+**Machine Learning System das Gegner erkennt UND zwischen Teams unterscheidet!**
 
-**⚠️ NUR FÜR OFFLINE-BOTS! Nicht in Online-Matches verwenden!**
+**⚠️ NUR FÜR OFFLINE-BOTS! Nicht online verwenden!**
 
 ---
 
-## 🚀 Schnellstart (Windows)
+## ✨ Besonderes Feature: Team-Detection
 
-### Einfach:
+Die AI erkennt **automatisch** dein Team und zielt **NUR** auf Gegner!
+
+- 🔵 **Blau UI** = Du bist CT → Zielt auf Terroristen
+- 🟠 **Orange UI** = Du bist T → Zielt auf Counter-Terrorists
+- ✅ **Kein Friendly Fire!**
+
+---
+
+## 🎯 4-Klassen System
+
+Labele für jeden Gegner:
+1. **Enemy CT** (Blau) oder **Enemy T** (Orange) - Ganzer Körper
+2. **Head** - Kopf (exakte Position!)
+3. **Legs** - Beine (für Wallbang/Movement)
+
+Die AI lernt:
+- ✅ Team-Unterscheidung (CT vs T)
+- ✅ Exakte Kopf-Position
+- ✅ Beine für bessere Detection
+- → **Nur auf Gegner zielen!**
+
+---
+
+## 🚀 Schnellstart
+
+### Doppelklick auf:
 ```
-Doppelklick auf START.bat
+START.bat
 ```
 
-### Manuell:
+### Oder manuell:
 ```bash
-# 1. Dependencies installieren
+# 1. Dependencies
 pip install -r requirements.txt
 
-# 2. Screenshots sammeln
+# 2. Screenshots (10-15 Min spielen)
 cd 1_data_collection
 python capture_auto.py
 
-# 3. Labeling (Enemy + Head)
-python label_advanced.py
+# 3. Labeling (4 Klassen!)
+python label_team_aware.py
+# Für jeden Gegner:
+# - 1/2 = Enemy (CT oder T)
+# - 3 = Head
+# - 4 = Legs
 
 # 4. Dataset vorbereiten
-python prepare_dataset_advanced.py
+python prepare_dataset_team_aware.py
 
-# 5. Training
+# 5. Training (30 Min - 2h)
 cd ../2_training
 python train_model.py
 
-# 6. Testen
+# 6. Team-Aware Auto-Aim!
 cd ../3_detection
-python auto_aim_advanced.py
+python auto_aim_team_aware.py
 ```
+
+---
+
+## 🎮 Labeling Workflow
+
+**Pro Gegner im Bild:**
+
+1. Schaue UI-Farbe: Blau (CT) oder Orange (T)?
+2. Drücke **1** (CT) oder **2** (T)
+3. Ziehe Box um **ganzen Gegner**
+4. Drücke **3**
+5. Ziehe Box um **Kopf**
+6. Drücke **4**
+7. Ziehe Box um **Beine**
+8. Wiederhole für alle Gegner
+9. Drücke **S** zum Speichern
+
+**Farben:**
+- 🔵 Blau = Enemy CT
+- 🟠 Orange = Enemy T
+- 🔴 Rot = Head
+- 🟣 Magenta = Legs
+
+---
+
+## 🎯 Auto-Aim Features
+
+```bash
+python auto_aim_team_aware.py
+```
+
+- **Automatische Team-Erkennung**
+  - Analysiert UI oben links
+  - Erkennt Blau (CT) oder Orange (T)
+
+- **Nur gegnerische Targets**
+  - Du = CT → Zielt auf T
+  - Du = T → Zielt auf CT
+
+- **Kein Friendly Fire**
+  - Eigenes Team wird ignoriert!
+  - Markiert Teammates grau
+
+- **RMB halten** = Aim aktiv
 
 ---
 
 ## 📁 Struktur
 
 ```
-1_data_collection/
-  - capture_auto.py          # Screenshots sammeln
-  - label_advanced.py        # Multi-Class Labeling
-  - prepare_dataset_advanced.py
-
-2_training/
-  - train_model.py           # YOLOv8 Training
-  - visualize_training.py    # Plots
-
-3_detection/
-  - detect_realtime.py       # Live Detection
-  - auto_aim_advanced.py     # Auto-Aim
-
-4_evaluation/
-  - evaluate_model.py        # Metriken
+cs2-aimbot-ml/
+├── START.bat                           # Hauptmenü
+├── 1_data_collection/
+│   ├── capture_auto.py                 # Auto-Screenshots
+│   ├── label_team_aware.py             # 4-Klassen Labeling
+│   └── prepare_dataset_team_aware.py   # Dataset Prep
+├── 2_training/
+│   └── train_model.py                  # YOLOv8 Training
+├── 3_detection/
+│   └── auto_aim_team_aware.py          # Team-Aware Aim!
+└── 4_evaluation/
+    └── evaluate_model.py
 ```
 
 ---
 
-## 🎯 Multi-Class System
+## 📊 Erwartete Ergebnisse
 
-Labele **BEIDE** für jeden Gegner:
-- **Enemy (E)**: Grüne Box um ganzen Gegner
-- **Head (H)**: Rote Box um Kopf
+**Mit 300 Bildern, gut gelabelt:**
+- mAP@50 (Enemy CT): ~0.85
+- mAP@50 (Enemy T): ~0.85
+- mAP@50 (Head): ~0.75
+- mAP@50 (Legs): ~0.70
 
-Die AI lernt dann:
-- Wo Gegner sind
-- Wo Köpfe EXAKT sind → 90%+ Headshot-Genauigkeit!
-
----
-
-## 📊 Workflow
-
-1. **Screenshots**: `capture_auto.py` - Spiele 10-15 Min
-2. **Labeling**: `label_advanced.py` - Markiere Enemy + Head
-3. **Dataset**: `prepare_dataset_advanced.py` - Auto train/val split
-4. **Training**: `train_model.py` - 30 Min - 2h
-5. **Testing**: `auto_aim_advanced.py` - RMB = Aim
-
----
-
-## ⚙️ Labeling Steuerung
-
-- **E** = Enemy Mode (grün)
-- **H** = Head Mode (rot)
-- **S** = Speichern & weiter
-- **D** = Überspringen
-- **U** = Letzte Box löschen
-- **Q** = Beenden
-
----
-
-## 🎯 Auto-Aim
-
-```bash
-python auto_aim_advanced.py
-```
-
-- **RMB halten** = Aim aktiv
-- Zielt auf exakte Kopf-Position (Class 1)
-- ~90%+ Headshot-Rate
-
----
-
-## 📈 Erwartete Ergebnisse
-
-**Mit 300 Bildern:**
-- mAP@50: ~0.8
+**Auto-Aim:**
+- Team-Erkennungsrate: ~95%+
+- Kein Friendly Fire
 - Headshot-Rate: ~85%
-
-**Mit 500+ Bildern:**
-- mAP@50: >0.9
-- Headshot-Rate: ~95%
 
 ---
 
@@ -122,25 +150,46 @@ python auto_aim_advanced.py
 
 ```
 Python 3.8+
-GPU empfohlen (10x schneller)
-~2GB Speicher
+GPU empfohlen
+OpenCV, PyTorch, YOLOv8
 ```
-
----
-
-## 📚 Weitere Infos
-
-Detaillierte Anleitung: **MULTI_CLASS_GUIDE.md**
 
 ---
 
 ## ⚠️ Disclaimer
 
-Nur für:
+**Nur für:**
 - ✅ Lernzwecke
 - ✅ Offline-Bots
-- ❌ NICHT für Online-Multiplayer (BAN-Risiko!)
+- ✅ Zum Verstehen von ML/CV
+
+**NICHT für:**
+- ❌ Online-Multiplayer (BAN!)
+- ❌ Competitive Gaming
+- ❌ Unfairer Vorteil
 
 ---
 
-Made with YOLOv8 | PyTorch | OpenCV
+## 💡 Technische Details
+
+### Team-Erkennung:
+```python
+# Analysiert UI-Bereich oben links (0:150, 0:200)
+# HSV-Farberkennung:
+# Blau (90-130 HSV) = CT
+# Orange (10-30 HSV) = T
+```
+
+### Target-Validierung:
+```python
+if player_team == 'CT' and enemy_class == 'enemy_t':
+    # Ziele auf T
+elif player_team == 'T' and enemy_class == 'enemy_ct':
+    # Ziele auf CT
+else:
+    # Ignoriere (eigenes Team!)
+```
+
+---
+
+Made with YOLOv8 | PyTorch | OpenCV | Computer Vision

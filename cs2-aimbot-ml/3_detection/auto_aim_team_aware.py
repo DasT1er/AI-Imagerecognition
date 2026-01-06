@@ -1,12 +1,13 @@
 """
-CS2 Advanced Auto-Aim - Multi-Class
-====================================
-Nutzt BEIDE Klassen für perfekte Headshots!
+CS2 Team-Aware Auto-Aim
+========================
+Erkennt dein Team und zielt NUR auf Gegner!
 
-- Class 0 (Enemy): Findet Gegner
-- Class 1 (Head): Zielt auf exakten Kopf
-
-Vorteil: Keine Schätzung mehr - AI kennt exakte Kopf-Position!
+Features:
+- Automatische Team-Erkennung (Blau = CT, Orange = T)
+- Zielt nur auf gegnerisches Team
+- Nutzt Head/Legs für präzises Aiming
+- Vermeidet Friendly Fire!
 """
 
 import cv2
@@ -23,64 +24,65 @@ import ctypes
 init(autoreset=True)
 pyautogui.FAILSAFE = False
 
-class AdvancedAutoAim:
+class TeamAwareAutoAim:
     def __init__(self,
                  model_path="../models/cs2_target_detector_n/weights/best.pt",
                  confidence_threshold=0.6,
                  aim_smoothing=0.3,
-                 fov_radius=300,
-                 prefer_heads=True):
-        """
-        Advanced Auto-Aim mit Multi-Class Support
+                 fov_radius=300):
 
-        Args:
-            model_path: Pfad zum trainierten Multi-Class Model
-            confidence_threshold: Minimum Confidence
-            aim_smoothing: Smoothing Factor (0.1-1.0)
-            fov_radius: FOV Radius in Pixel
-            prefer_heads: True = Ziele auf Head-Boxen (exakt), False = Enemy-Boxen (geschätzt)
-        """
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.aim_smoothing = aim_smoothing
         self.fov_radius = fov_radius
-        self.prefer_heads = prefer_heads
 
         # Klassen
-        self.CLASS_ENEMY = 0
-        self.CLASS_HEAD = 1
+        self.CLASS_ENEMY_CT = 0
+        self.CLASS_ENEMY_T = 1
+        self.CLASS_HEAD = 2
+        self.CLASS_LEGS = 3
+
+        # Team Detection
+        self.player_team = None  # 'CT' oder 'T'
+        self.team_check_cooldown = 0
 
         # Farben
-        self.COLOR_ENEMY = (0, 255, 0)
+        self.COLOR_CT = (255, 100, 0)
+        self.COLOR_T = (0, 165, 255)
         self.COLOR_HEAD = (0, 0, 255)
+        self.COLOR_LEGS = (255, 0, 255)
 
         # State
         self.aim_active = False
         self.mouse_listener = None
 
         print(f"{Fore.GREEN}{'='*70}")
-        print(f"{Fore.CYAN}CS2 Advanced Auto-Aim - Multi-Class")
+        print(f"{Fore.CYAN}CS2 Team-Aware Auto-Aim")
         print(f"{Fore.GREEN}{'='*70}\n")
-        print(f"{Fore.RED}⚠️  NUR FÜR OFFLINE-BOTS VERWENDEN! ⚠️\n")
+        print(f"{Fore.RED}⚠️  NUR FÜR OFFLINE-BOTS! ⚠️\n")
 
-        # Check Model
         if not os.path.exists(model_path):
-            print(f"{Fore.RED}Model nicht gefunden: {model_path}")
-            print(f"{Fore.YELLOW}Tipp: Trainiere zuerst mit Multi-Class Daten!")
+            print(f"{Fore.RED}Model nicht gefunden!")
             exit(1)
 
-        # Lade Model
-        print(f"{Fore.YELLOW}Lade Multi-Class Model: {Fore.CYAN}{model_path}")
+        print(f"{Fore.YELLOW}Lade Team-Aware Model...")
         self.model = YOLO(model_path)
         print(f"{Fore.GREEN}✓ Model geladen!\n")
 
-        # Screen Setup
+        # Screen
         self.sct = mss.mss()
         self.monitor = self.sct.monitors[1]
         self.screen_center_x = self.monitor['width'] // 2
         self.screen_center_y = self.monitor['height'] // 2
 
-        # Stats
+        # UI-Bereich für Team-Detection (oben links)
+        self.ui_region = {
+            'left': self.monitor['left'],
+            'top': self.monitor['top'],
+            'width': 200,
+            'height': 150
+        }
+
         self.fps = 0
         self.frame_times = []
 
@@ -88,15 +90,47 @@ class AdvancedAutoAim:
         print(f"{Fore.WHITE}  Confidence: {Fore.CYAN}{confidence_threshold}")
         print(f"{Fore.WHITE}  Smoothing: {Fore.CYAN}{aim_smoothing}")
         print(f"{Fore.WHITE}  FOV: {Fore.CYAN}{fov_radius}px")
-        print(f"{Fore.WHITE}  Priorität: {Fore.CYAN}{'Heads (exakt)' if prefer_heads else 'Enemy (geschätzt)'}")
+        print(f"\n{Fore.CYAN}Team-Detection:")
+        print(f"{Fore.BLUE}  • Blau UI = Du bist CT → Ziele auf T")
+        print(f"{Fore.YELLOW}  • Orange UI = Du bist T → Ziele auf CT")
+        print(f"{Fore.GREEN}  → Kein Friendly Fire!")
         print(f"\n{Fore.YELLOW}Steuerung:")
-        print(f"{Fore.WHITE}  RMB halten = {Fore.GREEN}AIM AKTIV")
+        print(f"{Fore.WHITE}  RMB halten = AIM AKTIV")
         print(f"{Fore.WHITE}  Q = Beenden")
-        print(f"\n{Fore.CYAN}Wie es funktioniert:")
-        print(f"{Fore.GREEN}  1. AI erkennt Gegner (Grün) UND Köpfe (Rot)")
-        print(f"{Fore.RED}  2. Zielt auf exakte Kopf-Position!")
-        print(f"{Fore.YELLOW}  3. Keine Schätzung mehr - perfekte Headshots! 🎯")
         print(f"{Fore.GREEN}{'='*70}\n")
+
+    def detect_player_team(self, screen):
+        """
+        Erkennt Team des Spielers anhand UI-Farbe oben links
+
+        Returns:
+            'CT' wenn blau, 'T' wenn orange/gelb
+        """
+        # Schneide UI-Bereich aus (oben links)
+        ui_area = screen[0:150, 0:200]
+
+        # Konvertiere zu HSV für bessere Farberkennung
+        hsv = cv2.cvtColor(ui_area, cv2.COLOR_BGR2HSV)
+
+        # Blau-Maske (CT)
+        lower_blue = np.array([90, 50, 50])
+        upper_blue = np.array([130, 255, 255])
+        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+        blue_pixels = cv2.countNonZero(blue_mask)
+
+        # Orange/Gelb-Maske (T)
+        lower_orange = np.array([10, 100, 100])
+        upper_orange = np.array([30, 255, 255])
+        orange_mask = cv2.inRange(hsv, lower_orange, upper_orange)
+        orange_pixels = cv2.countNonZero(orange_mask)
+
+        # Welche Farbe dominiert?
+        if blue_pixels > orange_pixels and blue_pixels > 100:
+            return 'CT'
+        elif orange_pixels > blue_pixels and orange_pixels > 100:
+            return 'T'
+        else:
+            return None  # Unsicher
 
     def on_click(self, x, y, button, pressed):
         """Mouse Handler"""
@@ -114,15 +148,34 @@ class AdvancedAutoAim:
         img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
         return img
 
-    def find_best_target(self, results):
+    def is_valid_target(self, class_id):
         """
-        Findet bestes Target
+        Prüft ob Target gültig ist (nicht eigenes Team!)
 
-        Wenn prefer_heads=True:
-          - Nutzt Head-Boxen (Class 1) - EXAKTE Position!
-        Sonst:
-          - Nutzt Enemy-Boxen (Class 0) und schätzt Kopf
+        Args:
+            class_id: Erkannte Klasse
+        Returns:
+            True wenn gegnerisch, False wenn eigenes Team
         """
+        if self.player_team is None:
+            return False  # Team noch nicht erkannt
+
+        # Wenn Spieler CT ist, nur auf T zielen
+        if self.player_team == 'CT' and class_id == self.CLASS_ENEMY_T:
+            return True
+
+        # Wenn Spieler T ist, nur auf CT zielen
+        if self.player_team == 'T' and class_id == self.CLASS_ENEMY_CT:
+            return True
+
+        # Head/Legs sind immer OK (beide Teams)
+        if class_id in [self.CLASS_HEAD, self.CLASS_LEGS]:
+            return True
+
+        return False
+
+    def find_best_target(self, results):
+        """Findet bestes Target (nur gegnerisches Team!)"""
         best_target = None
         best_distance = float('inf')
 
@@ -136,37 +189,32 @@ class AdvancedAutoAim:
 
                 class_id = int(box.cls[0])
 
-                # Filter nach Präferenz
-                if self.prefer_heads and class_id != self.CLASS_HEAD:
-                    continue
-                elif not self.prefer_heads and class_id != self.CLASS_ENEMY:
+                # WICHTIG: Nur gültige Targets (kein eigenes Team!)
+                if not self.is_valid_target(class_id):
                     continue
 
-                # Box Koordinaten
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                # Aim-Point
+                # Aim-Point je nach Klasse
                 if class_id == self.CLASS_HEAD:
-                    # Head-Box: Ziele auf Mitte (ist eh schon Kopf!)
                     target_x = (x1 + x2) // 2
                     target_y = (y1 + y2) // 2
-                else:
-                    # Enemy-Box: Schätze Kopf (25% von oben)
+                elif class_id == self.CLASS_LEGS:
                     target_x = (x1 + x2) // 2
-                    target_y = int(y1 + (y2 - y1) * 0.25)
+                    target_y = (y1 + y2) // 2
+                else:  # Enemy Body
+                    target_x = (x1 + x2) // 2
+                    target_y = int(y1 + (y2 - y1) * 0.25)  # Geschätzter Kopf
 
-                # Distanz zum Screen-Center
                 distance = np.sqrt(
                     (target_x - self.screen_center_x) ** 2 +
                     (target_y - self.screen_center_y) ** 2
                 )
 
-                # FOV Check
                 if distance > self.fov_radius:
                     continue
 
-                # Wähle nähestes
                 if distance < best_distance:
                     best_distance = distance
                     best_target = (target_x, target_y, conf, distance, class_id)
@@ -186,9 +234,35 @@ class AdvancedAutoAim:
         if abs(move_x) > 1 or abs(move_y) > 1:
             ctypes.windll.user32.mouse_event(1, move_x, move_y, 0, 0)
 
+    def get_class_color(self, class_id):
+        """Farbe für Klasse"""
+        colors = {
+            self.CLASS_ENEMY_CT: self.COLOR_CT,
+            self.CLASS_ENEMY_T: self.COLOR_T,
+            self.CLASS_HEAD: self.COLOR_HEAD,
+            self.CLASS_LEGS: self.COLOR_LEGS
+        }
+        return colors.get(class_id, (255, 255, 255))
+
+    def get_class_name(self, class_id):
+        """Name für Klasse"""
+        names = {
+            self.CLASS_ENEMY_CT: "Enemy CT",
+            self.CLASS_ENEMY_T: "Enemy T",
+            self.CLASS_HEAD: "Head",
+            self.CLASS_LEGS: "Legs"
+        }
+        return names.get(class_id, "Unknown")
+
     def draw_overlay(self, img, results, best_target):
         """Zeichnet Overlay"""
         overlay = img.copy()
+
+        # Team-Info oben rechts
+        team_text = f"YOUR TEAM: {self.player_team if self.player_team else 'DETECTING...'}"
+        team_color = self.COLOR_CT if self.player_team == 'CT' else self.COLOR_T
+        cv2.putText(overlay, team_text, (img.shape[1] - 300, 30),
+                   cv2.FONT_HERSHEY_BOLD, 0.7, team_color if self.player_team else (255, 255, 255), 2)
 
         # FOV Circle
         cv2.circle(overlay, (self.screen_center_x, self.screen_center_y),
@@ -198,7 +272,7 @@ class AdvancedAutoAim:
         cv2.drawMarker(overlay, (self.screen_center_x, self.screen_center_y),
                       (0, 255, 0), cv2.MARKER_CROSS, 30, 2)
 
-        # Alle Detections
+        # Detections
         for result in results:
             boxes = result.boxes
 
@@ -211,71 +285,41 @@ class AdvancedAutoAim:
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                # Farbe nach Klasse
-                if class_id == self.CLASS_ENEMY:
-                    color = self.COLOR_ENEMY
-                    label = "Enemy"
-                    thickness = 2
-                else:
-                    color = self.COLOR_HEAD
-                    label = "Head"
-                    thickness = 3
+                color = self.get_class_color(class_id)
 
-                # Aim Point
-                if class_id == self.CLASS_HEAD:
-                    target_x = (x1 + x2) // 2
-                    target_y = (y1 + y2) // 2
-                else:
-                    target_x = (x1 + x2) // 2
-                    target_y = int(y1 + (y2 - y1) * 0.25)
+                # Markiere invalide Targets (eigenes Team) anders
+                is_valid = self.is_valid_target(class_id)
+                thickness = 2 if is_valid else 1
+                line_type = cv2.LINE_AA if is_valid else cv2.LINE_4
 
-                distance = np.sqrt(
-                    (target_x - self.screen_center_x) ** 2 +
-                    (target_y - self.screen_center_y) ** 2
-                )
-
-                in_fov = distance <= self.fov_radius
-
-                # Box
-                cv2.rectangle(overlay, (x1, y1), (x2, y2), color, thickness)
-
-                # Aim-Point
-                cv2.drawMarker(overlay, (target_x, target_y),
-                             color, cv2.MARKER_CROSS, 15, 2)
+                cv2.rectangle(overlay, (x1, y1), (x2, y2), color, thickness, line_type)
 
                 # Label
-                label_text = f"{label} {conf:.2f}"
-                if in_fov:
-                    label_text += f" [{int(distance)}px]"
+                label = self.get_class_name(class_id)
+                if not is_valid and class_id in [self.CLASS_ENEMY_CT, self.CLASS_ENEMY_T]:
+                    label += " (TEAM!)"
+                    color = (128, 128, 128)  # Grau für eigenes Team
 
-                cv2.putText(overlay, label_text, (x1, y1 - 5),
+                cv2.putText(overlay, label, (x1, y1 - 5),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
         # Best Target
         if best_target:
             target_x, target_y, conf, distance, class_id = best_target
 
-            # Rotes Kreuz
             cv2.drawMarker(overlay, (target_x, target_y),
                          (0, 0, 255), cv2.MARKER_CROSS, 25, 3)
 
-            # Linie
             cv2.line(overlay,
                     (self.screen_center_x, self.screen_center_y),
                     (target_x, target_y),
                     (0, 0, 255), 2)
 
-            # Target Info
-            class_name = "HEAD" if class_id == self.CLASS_HEAD else "ENEMY"
-            target_info = f"TARGET: {class_name}"
-            cv2.putText(overlay, target_info, (target_x + 15, target_y),
-                       cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 255), 2)
-
         return overlay
 
     def run(self):
         """Hauptloop"""
-        print(f"{Fore.GREEN}Advanced Auto-Aim aktiv!\n")
+        print(f"{Fore.GREEN}Team-Aware Auto-Aim aktiv!\n")
 
         self.mouse_listener = mouse.Listener(on_click=self.on_click)
         self.mouse_listener.start()
@@ -287,8 +331,19 @@ class AdvancedAutoAim:
             while True:
                 loop_start = time.time()
 
-                # Capture
                 screen = self.capture_screen()
+
+                # Team-Detection alle 60 Frames
+                if frame_count % 60 == 0:
+                    detected_team = self.detect_player_team(screen)
+                    if detected_team and detected_team != self.player_team:
+                        self.player_team = detected_team
+                        team_color = Fore.BLUE if detected_team == 'CT' else Fore.YELLOW
+                        print(f"\n{team_color}► Team erkannt: {detected_team}")
+                        if detected_team == 'CT':
+                            print(f"{Fore.GREEN}  → Ziele auf Terroristen (Orange)")
+                        else:
+                            print(f"{Fore.GREEN}  → Ziele auf Counter-Terrorists (Blau)\n")
 
                 # Detection
                 results = self.model(screen, verbose=False, conf=self.confidence_threshold)
@@ -322,17 +377,10 @@ class AdvancedAutoAim:
 
                 if best_target:
                     _, _, conf, distance, class_id = best_target
-                    class_name = "HEAD" if class_id == self.CLASS_HEAD else "ENEMY"
-                    cv2.putText(display, f"Target: {class_name} {conf:.2f} ({int(distance)}px)",
+                    class_name = self.get_class_name(class_id)
+                    cv2.putText(display, f"Target: {class_name} {conf:.2f}",
                                (10, info_y + 80),
                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-                mode_text = "Mode: HEAD Priority" if self.prefer_heads else "Mode: ENEMY Priority"
-                cv2.putText(display, mode_text, (10, info_y + 120),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-
-                cv2.putText(display, "Q = Quit", (10, info_y + 160),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
                 # Display
                 scale = 0.6
@@ -340,7 +388,7 @@ class AdvancedAutoAim:
                 height = int(display.shape[0] * scale)
                 display_resized = cv2.resize(display, (width, height))
 
-                cv2.imshow('CS2 Advanced Auto-Aim', display_resized)
+                cv2.imshow('CS2 Team-Aware Auto-Aim', display_resized)
 
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):
@@ -356,18 +404,13 @@ class AdvancedAutoAim:
                 self.mouse_listener.stop()
             cv2.destroyAllWindows()
 
-            total_time = time.time() - start_time
-            avg_fps = frame_count / total_time if total_time > 0 else 0
-
             print(f"\n{Fore.GREEN}{'='*70}")
             print(f"{Fore.CYAN}Session Stats:")
+            print(f"{Fore.WHITE}  Team: {Fore.CYAN}{self.player_team}")
             print(f"{Fore.WHITE}  Frames: {Fore.CYAN}{frame_count}")
-            print(f"{Fore.WHITE}  Avg FPS: {Fore.CYAN}{avg_fps:.1f}")
-            print(f"{Fore.WHITE}  Runtime: {Fore.CYAN}{total_time:.1f}s")
             print(f"{Fore.GREEN}{'='*70}\n")
 
 def main():
-    # Finde Model
     model_path = "../models/cs2_target_detector_n/weights/best.pt"
 
     if not os.path.exists(model_path):
@@ -378,14 +421,11 @@ def main():
                 latest_run = sorted(runs)[-1]
                 model_path = os.path.join(models_dir, latest_run, "weights", "best.pt")
 
-    # Starte Advanced Auto-Aim
-    auto_aim = AdvancedAutoAim(
+    auto_aim = TeamAwareAutoAim(
         model_path=model_path,
         confidence_threshold=0.6,
         aim_smoothing=0.3,
-        fov_radius=300,
-        prefer_heads=True       # True = Zielt auf Head-Boxen (EXAKT!)
-                                # False = Zielt auf Enemy-Boxen (geschätzt)
+        fov_radius=300
     )
 
     auto_aim.run()

@@ -1,21 +1,21 @@
 @echo off
 chcp 65001 >nul
-title CS2 AI - Hauptmenu
+title CS2 AI - Team-Aware System
 color 0A
 
 :MENU
 cls
 echo ====================================================================
-echo                   CS2 AI TARGET DETECTION
+echo              CS2 AI AIMBOT - TEAM-AWARE SYSTEM
 echo ====================================================================
 echo.
+echo  WICHTIG: Nur fuer Offline-Bots verwenden!
+echo.
 echo  [1] Screenshots sammeln
-echo  [2] Gegner labeln (Multi-Class)
+echo  [2] Gegner labeln (4 Klassen: CT/T/Head/Legs)
 echo  [3] Dataset vorbereiten
 echo  [4] Model trainieren
-echo  [5] Live Detection testen
-echo  [6] Auto-Aim starten
-echo  [7] Model evaluieren
+echo  [5] Auto-Aim starten (Team-Aware!)
 echo  [0] Beenden
 echo.
 echo ====================================================================
@@ -27,9 +27,7 @@ if "%choice%"=="1" goto SCREENSHOT
 if "%choice%"=="2" goto LABELING
 if "%choice%"=="3" goto PREPARE
 if "%choice%"=="4" goto TRAINING
-if "%choice%"=="5" goto DETECTION
-if "%choice%"=="6" goto AUTOAIM
-if "%choice%"=="7" goto EVALUATION
+if "%choice%"=="5" goto AUTOAIM
 if "%choice%"=="0" goto EXIT
 
 echo.
@@ -45,10 +43,9 @@ echo ====================================================================
 echo.
 echo Macht automatisch alle 2 Sekunden einen Screenshot!
 echo.
-echo 1. Dieses Tool startet jetzt
-echo 2. Starte CS2 (Offline Bots!)
-echo 3. Spiele 10-15 Minuten
-echo 4. Druecke STRG+C zum Beenden
+echo 1. Starte CS2 (Offline Bots!)
+echo 2. Spiele 10-15 Minuten
+echo 3. Druecke STRG+C zum Beenden
 echo.
 pause
 cd 1_data_collection
@@ -60,20 +57,25 @@ goto MENU
 :LABELING
 cls
 echo ====================================================================
-echo                    GEGNER LABELN
+echo                TEAM-AWARE MULTI-CLASS LABELING
 echo ====================================================================
 echo.
-echo Multi-Class Labeling: Enemy (gruen) + Head (rot)
+echo 4 Klassen zum Labeln:
+echo  [1] Enemy CT  - Counter-Terrorist (Blau)
+echo  [2] Enemy T   - Terrorist (Orange)
+echo  [3] Head      - Kopf
+echo  [4] Legs      - Beine
 echo.
-echo Steuerung:
-echo  E - Enemy Mode (ganzer Gegner)
-echo  H - Head Mode (nur Kopf)
-echo  S - Speichern
-echo  Q - Beenden
+echo Workflow pro Gegner:
+echo  1. Schaue ob CT (blau) oder T (orange)
+echo  2. Druecke 1 oder 2 -^> Box um ganzen Gegner
+echo  3. Druecke 3 -^> Box um Kopf
+echo  4. Druecke 4 -^> Box um Beine
+echo  5. Druecke S zum Speichern
 echo.
 pause
 cd 1_data_collection
-python label_advanced.py
+python label_team_aware.py
 cd ..
 pause
 goto MENU
@@ -84,9 +86,11 @@ echo ====================================================================
 echo                    DATASET VORBEREITEN
 echo ====================================================================
 echo.
+echo Bereitet 4-Klassen Dataset vor...
+echo.
 pause
 cd 1_data_collection
-python prepare_dataset_advanced.py
+python prepare_dataset_team_aware.py
 cd ..
 pause
 goto MENU
@@ -99,25 +103,14 @@ echo ====================================================================
 echo.
 echo ACHTUNG: Dauert 30 Min - 2 Stunden!
 echo.
+echo Die AI lernt:
+echo  - CT vs T erkennen
+echo  - Koepfe finden
+echo  - Beine erkennen
+echo.
 pause
 cd 2_training
 python train_model.py
-cd ..
-pause
-goto MENU
-
-:DETECTION
-cls
-echo ====================================================================
-echo                    LIVE DETECTION
-echo ====================================================================
-echo.
-echo Zeigt gruene/rote Boxen um Gegner/Koepfe
-echo Druecke Q zum Beenden
-echo.
-pause
-cd 3_detection
-python detect_realtime.py
 cd ..
 pause
 goto MENU
@@ -126,10 +119,16 @@ goto MENU
 cls
 color 0C
 echo ====================================================================
-echo                    AUTO-AIM SYSTEM
+echo              TEAM-AWARE AUTO-AIM SYSTEM
 echo ====================================================================
 echo.
-echo NUR FUER OFFLINE-BOTS VERWENDEN!
+echo NUR FUER OFFLINE-BOTS!
+echo.
+echo Features:
+echo  - Erkennt DEIN Team (Blau=CT, Orange=T)
+echo  - Zielt NUR auf gegnerisches Team
+echo  - KEIN Friendly Fire!
+echo  - Praezise Kopf-Erkennung
 echo.
 echo Steuerung:
 echo  RMB halten = Aim aktiv
@@ -138,20 +137,7 @@ echo.
 pause
 color 0A
 cd 3_detection
-python auto_aim_advanced.py
-cd ..
-pause
-goto MENU
-
-:EVALUATION
-cls
-echo ====================================================================
-echo                    MODEL EVALUIEREN
-echo ====================================================================
-echo.
-pause
-cd 4_evaluation
-python evaluate_model.py
+python auto_aim_team_aware.py
 cd ..
 pause
 goto MENU
