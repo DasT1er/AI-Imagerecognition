@@ -56,15 +56,93 @@ echo ====================================================================
 echo                    SCREENSHOTS SAMMELN
 echo ====================================================================
 echo.
-echo Macht automatisch alle 2 Sekunden einen Screenshot!
+echo Waehle Screenshot-Methode:
 echo.
-echo 1. Starte CS2 (Offline Bots!)
-echo 2. Spiele 10-15 Minuten
-echo 3. Druecke STRG+C zum Beenden
+echo  [1] MSS (Standard - schnell)
+echo  [2] PIL ImageGrab (bessere Farbgenauigkeit!)
+echo  [3] PyAutoGUI (stabile Farben)
+echo  [4] Methoden vergleichen (Test)
+echo  [0] Zurueck
+echo.
+set /p screenshot_choice=Waehle Methode:
+
+if "%screenshot_choice%"=="1" goto SCREENSHOT_MSS
+if "%screenshot_choice%"=="2" goto SCREENSHOT_PIL
+if "%screenshot_choice%"=="3" goto SCREENSHOT_PYAUTOGUI
+if "%screenshot_choice%"=="4" goto SCREENSHOT_TEST
+if "%screenshot_choice%"=="0" goto MENU
+goto SCREENSHOT
+
+:SCREENSHOT_MSS
+cls
+echo ====================================================================
+echo            SCREENSHOTS - MSS (Standard)
+echo ====================================================================
+echo.
+echo Schnellste Methode, aber manchmal ueberbelichtet!
 echo.
 pause
 cd 1_data_collection
 python capture_auto.py
+cd ..
+pause
+goto MENU
+
+:SCREENSHOT_PIL
+cls
+echo ====================================================================
+echo            SCREENSHOTS - PIL ImageGrab
+echo ====================================================================
+echo.
+echo BESSERE Farbgenauigkeit - weniger Ueberbelichtung!
+echo Empfohlen wenn MSS zu helle Bilder macht!
+echo.
+pause
+cd 1_data_collection
+python capture_auto_pil.py
+cd ..
+pause
+goto MENU
+
+:SCREENSHOT_PYAUTOGUI
+cls
+echo ====================================================================
+echo            SCREENSHOTS - PyAutoGUI
+echo ====================================================================
+echo.
+echo Stabile Farbwiedergabe!
+echo Alternative wenn MSS nicht gut funktioniert.
+echo.
+pause
+cd 1_data_collection
+python capture_auto_pyautogui.py
+cd ..
+pause
+goto MENU
+
+:SCREENSHOT_TEST
+cls
+echo ====================================================================
+echo            SCREENSHOT-METHODEN VERGLEICH
+echo ====================================================================
+echo.
+echo Testet alle 4 Screenshot-Methoden und zeigt sie nebeneinander!
+echo So siehst du welche am besten fuer dich funktioniert.
+echo.
+echo Getestet wird:
+echo  - MSS (aktuell)
+echo  - PIL ImageGrab
+echo  - PyAutoGUI
+echo  - Win32 API
+echo.
+echo Achte auf:
+echo  - Avg Brightness (niedrig = besser bei Ueberbelichtung)
+echo  - Farbgenauigkeit
+echo  - Speed
+echo.
+pause
+cd 1_data_collection
+python capture_methods_test.py
 cd ..
 pause
 goto MENU
