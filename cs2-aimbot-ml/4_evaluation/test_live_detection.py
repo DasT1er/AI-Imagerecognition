@@ -176,12 +176,22 @@ class LiveDetectionTester:
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        print(f"{Fore.RED}Usage: python test_live_detection.py <model_path>")
-        print(f"{Fore.YELLOW}Beispiel: python test_live_detection.py ../data/yolo_6class/runs/detect/train/weights/best.pt")
-        sys.exit(1)
+    # Standard-Pfad zum trainierten Model
+    default_model_path = "../models/cs2_target_detector_n/weights/best.pt"
 
-    model_path = sys.argv[1]
+    if len(sys.argv) < 2:
+        # Prüfe ob default model existiert
+        if os.path.exists(default_model_path):
+            print(f"{Fore.CYAN}Verwende Standard-Model: {default_model_path}\n")
+            model_path = default_model_path
+        else:
+            print(f"{Fore.RED}Usage: python test_live_detection.py <model_path>")
+            print(f"{Fore.YELLOW}Beispiel: python test_live_detection.py ../models/cs2_target_detector_n/weights/best.pt")
+            print(f"\n{Fore.RED}Oder trainiere erst das Model mit:")
+            print(f"{Fore.CYAN}cd ../2_training && python train_model.py")
+            sys.exit(1)
+    else:
+        model_path = sys.argv[1]
 
     if not os.path.exists(model_path):
         print(f"{Fore.RED}Model nicht gefunden: {model_path}")

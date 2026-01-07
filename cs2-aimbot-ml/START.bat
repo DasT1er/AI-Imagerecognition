@@ -15,7 +15,10 @@ echo  [1] Screenshots sammeln
 echo  [2] Gegner labeln (6 Klassen: CT/T x Body/Head/Legs)
 echo  [3] Dataset vorbereiten
 echo  [4] Model trainieren
-echo  [5] Auto-Aim starten (Erweiterte Team-Erkennung!)
+echo  [5] Model testen (Visuell)
+echo  [6] Model evaluieren (Metrics)
+echo  [7] Live Detection Test
+echo  [8] Auto-Aim starten (Erweiterte Team-Erkennung!)
 echo  [0] Beenden
 echo.
 echo ====================================================================
@@ -27,7 +30,10 @@ if "%choice%"=="1" goto SCREENSHOT
 if "%choice%"=="2" goto LABELING
 if "%choice%"=="3" goto PREPARE
 if "%choice%"=="4" goto TRAINING
-if "%choice%"=="5" goto AUTOAIM
+if "%choice%"=="5" goto TEST_VISUAL
+if "%choice%"=="6" goto TEST_METRICS
+if "%choice%"=="7" goto TEST_LIVE
+if "%choice%"=="8" goto AUTOAIM
 if "%choice%"=="0" goto EXIT
 
 echo.
@@ -118,6 +124,74 @@ cd ..
 pause
 goto MENU
 
+:TEST_VISUAL
+cls
+echo ====================================================================
+echo                    MODEL TESTEN - VISUELL
+echo ====================================================================
+echo.
+echo Zeigt Detections auf Test-Bildern
+echo.
+echo Du siehst:
+echo  - Bounding Boxes (farbig nach Klasse)
+echo  - Labels mit Confidence Scores
+echo  - Statistiken pro Bild
+echo.
+echo Steuerung:
+echo  SPACE = Naechstes Bild
+echo  Q = Beenden
+echo.
+pause
+cd 4_evaluation
+python test_detection_visual.py
+cd ..
+pause
+goto MENU
+
+:TEST_METRICS
+cls
+echo ====================================================================
+echo                  MODEL EVALUIEREN - METRICS
+echo ====================================================================
+echo.
+echo Berechnet wissenschaftliche Metriken:
+echo  - mAP@50 (^> 0.7 = gut)
+echo  - Precision (wenige False Positives)
+echo  - Recall (alle Targets gefunden)
+echo.
+echo Output:
+echo  - Confusion Matrix
+echo  - Pro-Klasse Scores
+echo.
+pause
+cd 4_evaluation
+python evaluate_metrics.py
+cd ..
+pause
+goto MENU
+
+:TEST_LIVE
+cls
+echo ====================================================================
+echo                  LIVE DETECTION TEST
+echo ====================================================================
+echo.
+echo Zeigt LIVE was die AI sieht - OHNE Aimbot!
+echo.
+echo 1. Waehle deinen Monitor
+echo 2. Starte CS2 Offline mit Bots
+echo 3. Tool zeigt Live-Feed mit Detections
+echo.
+echo Steuerung:
+echo  Q = Beenden
+echo.
+pause
+cd 4_evaluation
+python test_live_detection.py
+cd ..
+pause
+goto MENU
+
 :AUTOAIM
 cls
 color 0C
@@ -143,7 +217,7 @@ echo.
 pause
 color 0A
 cd 3_detection
-python auto_aim_6class.py ../data/yolo_6class/runs/detect/train/weights/best.pt
+python auto_aim_6class.py
 cd ..
 pause
 goto MENU
