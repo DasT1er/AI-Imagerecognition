@@ -80,6 +80,7 @@ class SemiAutoLabeler:
         self.current_box = None
         self.start_point = None
         self.sidebar_width = 350
+        self.auto_predicted = False  # Flag für Auto-Predictions
 
         print(f"{Fore.YELLOW}Gefundene Bilder: {Fore.WHITE}{len(all_images)}")
         print(f"{Fore.GREEN}Bereits gelabelt: {Fore.WHITE}{len(existing_labels)}")
@@ -154,6 +155,136 @@ class SemiAutoLabeler:
             3: "T Body", 4: "T Head", 5: "T Legs"
         }
         return names.get(class_id, "Unknown")
+
+    def draw_sidebar(self, height):
+        """Erstellt Sidebar mit Semi-Auto Info"""
+        sidebar = np.zeros((height, self.sidebar_width, 3), dtype=np.uint8)
+        sidebar[:] = self.COLOR_SIDEBAR
+
+        y_offset = 30
+
+        # Titel
+        title = "SEMI-AUTO MODE" if self.model else "MANUAL MODE"
+        title_color = (0, 255, 128) if self.model else (255, 255, 255)
+        cv2.putText(sidebar, title, (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.7, title_color, 2)
+        y_offset += 40
+
+        cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                (100, 100, 100), 1)
+        y_offset += 30
+
+        # Auto-Predict Status
+        if self.auto_predicted:
+            cv2.putText(sidebar, "AUTO-PREDICTED", (10, y_offset),
+                       cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 255, 255), 2)
+            cv2.putText(sidebar, "Press A to accept", (10, y_offset + 25),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+            y_offset += 55
+
+            cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                    (100, 100, 100), 1)
+            y_offset += 30
+
+        # Team-Auswahl
+        team_color = self.COLOR_CT if self.current_team == 'CT' else self.COLOR_T
+        cv2.putText(sidebar, f"TEAM: {self.current_team}", (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.8, team_color, 2)
+        cv2.putText(sidebar, "(TAB to switch)", (10, y_offset + 25),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+        y_offset += 55
+
+        cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                (100, 100, 100), 1)
+        y_offset += 30
+
+        # Part-Auswahl
+        parts = ['BODY', 'HEAD', 'LEGS']
+        colors = [self.COLOR_BODY, self.COLOR_HEAD, self.COLOR_LEGS]
+        keys = ['B', 'H', 'L']
+
+        for i, (part, color, key) in enumerate(zip(parts, colors, keys)):
+            is_active = (self.current_part == part)
+            btn_color = self.COLOR_ACTIVE if is_active else color
+
+            cv2.rectangle(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset+45),
+                         btn_color, -1 if is_active else 2)
+
+            text = f"[{key}] {part}"
+            cv2.putText(sidebar, text, (20, y_offset+28),
+                       cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if is_active else (255, 255, 255), 2)
+            y_offset += 55
+
+        y_offset += 10
+        cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                (100, 100, 100), 1)
+        y_offset += 30
+
+        # Aktueller Modus
+        current_class = self.get_current_class()
+        current_name = self.get_class_name(current_class)
+        cv2.putText(sidebar, "CURRENT:", (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
+        y_offset += 25
+        cv2.putText(sidebar, current_name, (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.7, self.get_class_color(current_class), 2)
+        y_offset += 35
+
+        cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                (100, 100, 100), 1)
+        y_offset += 30
+
+        # Statistiken
+        ct_body = sum(1 for box in self.boxes if box[4] == self.CLASS_CT_BODY)
+        ct_head = sum(1 for box in self.boxes if box[4] == self.CLASS_CT_HEAD)
+        ct_legs = sum(1 for box in self.boxes if box[4] == self.CLASS_CT_LEGS)
+        t_body = sum(1 for box in self.boxes if box[4] == self.CLASS_T_BODY)
+        t_head = sum(1 for box in self.boxes if box[4] == self.CLASS_T_HEAD)
+        t_legs = sum(1 for box in self.boxes if box[4] == self.CLASS_T_LEGS)
+
+        cv2.putText(sidebar, "STATISTICS", (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
+        y_offset += 30
+
+        cv2.putText(sidebar, "CT Team:", (10, y_offset),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_CT, 1)
+        y_offset += 20
+        cv2.putText(sidebar, f"  Body: {ct_body}  Head: {ct_head}  Legs: {ct_legs}", (10, y_offset),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+        y_offset += 25
+
+        cv2.putText(sidebar, "T Team:", (10, y_offset),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_T, 1)
+        y_offset += 20
+        cv2.putText(sidebar, f"  Body: {t_body}  Head: {t_head}  Legs: {t_legs}", (10, y_offset),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+        y_offset += 35
+
+        cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
+                (100, 100, 100), 1)
+        y_offset += 30
+
+        # Controls
+        cv2.putText(sidebar, "CONTROLS", (10, y_offset),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
+        y_offset += 30
+
+        controls = [
+            ("TAB", "Switch Team"),
+            ("B/H/L", "Body/Head/Legs"),
+            ("A", "Accept Auto"),
+            ("S", "Save"),
+            ("D", "Skip"),
+            ("DEL", "Delete Box"),
+            ("Q", "Quit")
+        ]
+
+        for key, action in controls:
+            cv2.putText(sidebar, f"{key} - {action}", (15, y_offset),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
+            y_offset += 18
+
+        return sidebar
 
     def mouse_callback(self, event, x, y, flags, param):
         if x >= param['img_width']:
@@ -234,6 +365,7 @@ class SemiAutoLabeler:
             if not self.boxes and self.model:
                 print(f"{Fore.YELLOW}  → Auto-Predicting...")
                 self.boxes = self.auto_predict(img)
+                self.auto_predicted = True if self.boxes else False
                 if self.boxes:
                     print(f"{Fore.GREEN}  ✓ {len(self.boxes)} Predictions gefunden!")
                     print(f"{Fore.CYAN}  Korrigiere/ergänze und drücke S zum Speichern")
@@ -257,17 +389,31 @@ class SemiAutoLabeler:
                     label = self.get_class_name(cid)
                     cv2.putText(display, label, (x1, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, border, 2)
 
+                    # Zentrum markieren
+                    cx = (x1 + x2) // 2
+                    cy = (y1 + y2) // 2
+                    cv2.drawMarker(display, (cx, cy), color, cv2.MARKER_CROSS, 15, 2)
+
                 # Current box
                 if self.current_box:
                     pt1, pt2 = self.current_box
                     color = self.get_class_color(self.get_current_class())
                     cv2.rectangle(display, pt1, pt2, color, 2)
 
-                # Info
-                info = f"{self.current_idx+1}/{len(self.image_files)} | Team: {self.current_team} | Part: {self.current_part}"
-                cv2.putText(display, info, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                # Info oben links
+                progress = f"{self.current_idx+1}/{len(self.image_files)}"
+                cv2.putText(display, progress, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-                cv2.imshow('Semi-Auto Labeling', display)
+                current_class = self.get_current_class()
+                mode_text = f"Mode: {self.get_class_name(current_class)}"
+                mode_color = self.get_class_color(current_class)
+                cv2.putText(display, mode_text, (10, 70), cv2.FONT_HERSHEY_DUPLEX, 0.8, mode_color, 2)
+
+                # Sidebar zeichnen und kombinieren
+                sidebar = self.draw_sidebar(h)
+                combined = np.hstack([display, sidebar])
+
+                cv2.imshow('Semi-Auto Labeling', combined)
                 cv2.setMouseCallback('Semi-Auto Labeling', self.mouse_callback, {'img_width': w})
 
                 key = cv2.waitKey(1) & 0xFF
@@ -291,18 +437,21 @@ class SemiAutoLabeler:
                     if self.boxes:
                         self.save_labels(img_file)
                         self.boxes = []
+                        self.auto_predicted = False
                         self.current_idx += 1
                         break
 
                 elif key == ord('s') or key == ord('S'):
                     self.save_labels(img_file)
                     self.boxes = []
+                    self.auto_predicted = False
                     self.current_idx += 1
                     break
 
                 elif key == ord('d') or key == ord('D'):
                     print(f"{Fore.YELLOW}⊘ Übersprungen")
                     self.boxes = []
+                    self.auto_predicted = False
                     self.current_idx += 1
                     break
 
