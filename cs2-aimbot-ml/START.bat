@@ -110,7 +110,29 @@ echo ====================================================================
 echo                    MODEL TRAINIEREN
 echo ====================================================================
 echo.
-echo ACHTUNG: Dauert 30 Min - 2 Stunden!
+echo Waehle Training-Modus:
+echo.
+echo  [1] Standard Training (100 Epochs, ~30-60 Min mit GPU)
+echo  [2] Fast Training (50 Epochs, ~10-20 Min mit GPU)
+echo.
+echo Fast Training ist gut genug fuer die meisten Faelle!
+echo.
+set /p train_choice=Waehle (1 oder 2):
+
+if "%train_choice%"=="1" goto TRAINING_STANDARD
+if "%train_choice%"=="2" goto TRAINING_FAST
+
+echo Ungueltige Auswahl!
+timeout /t 2 >nul
+goto TRAINING
+
+:TRAINING_STANDARD
+cls
+echo ====================================================================
+echo                  STANDARD TRAINING (100 Epochs)
+echo ====================================================================
+echo.
+echo ACHTUNG: Dauert 30-60 Min mit GPU, 2-3 Stunden ohne GPU!
 echo.
 echo Die AI lernt:
 echo  - CT Team: Body, Head, Legs
@@ -120,6 +142,29 @@ echo.
 pause
 cd 2_training
 python train_model.py
+cd ..
+pause
+goto MENU
+
+:TRAINING_FAST
+cls
+echo ====================================================================
+echo                    FAST TRAINING (50 Epochs)
+echo ====================================================================
+echo.
+echo ACHTUNG: Dauert 10-20 Min mit GPU, 1-2 Stunden ohne GPU!
+echo.
+echo Fast Training:
+echo  - Schneller durch weniger Epochs
+echo  - Auto-optimierte Batch Size
+echo  - Immer noch gute Ergebnisse!
+echo.
+echo GPU Status wird beim Start angezeigt.
+echo Falls keine GPU: Siehe GPU_SETUP.txt
+echo.
+pause
+cd 2_training
+python train_model_fast.py
 cd ..
 pause
 goto MENU
