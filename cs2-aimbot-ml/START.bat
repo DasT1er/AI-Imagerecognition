@@ -59,9 +59,11 @@ echo.
 echo Waehle Screenshot-Methode:
 echo.
 echo  [1] MSS (Standard - schnell)
-echo  [2] PIL ImageGrab (bessere Farbgenauigkeit!)
+echo  [2] PIL ImageGrab (bessere Farbgenauigkeit)
 echo  [3] PyAutoGUI (stabile Farben)
-echo  [4] Methoden vergleichen (Test)
+echo  [4] DXCam (OBS-Methode - BESTE QUALITAET!)
+echo  [5] OBS WebSocket (direkt ueber OBS)
+echo  [6] Methoden vergleichen (Test)
 echo  [0] Zurueck
 echo.
 set /p screenshot_choice=Waehle Methode:
@@ -69,7 +71,9 @@ set /p screenshot_choice=Waehle Methode:
 if "%screenshot_choice%"=="1" goto SCREENSHOT_MSS
 if "%screenshot_choice%"=="2" goto SCREENSHOT_PIL
 if "%screenshot_choice%"=="3" goto SCREENSHOT_PYAUTOGUI
-if "%screenshot_choice%"=="4" goto SCREENSHOT_TEST
+if "%screenshot_choice%"=="4" goto SCREENSHOT_DXCAM
+if "%screenshot_choice%"=="5" goto SCREENSHOT_OBS
+if "%screenshot_choice%"=="6" goto SCREENSHOT_TEST
 if "%screenshot_choice%"=="0" goto MENU
 goto SCREENSHOT
 
@@ -116,6 +120,57 @@ echo.
 pause
 cd 1_data_collection
 python capture_auto_pyautogui.py
+cd ..
+pause
+goto MENU
+
+:SCREENSHOT_DXCAM
+cls
+echo ====================================================================
+echo        SCREENSHOTS - DXCam (OBS-Methode!)
+echo ====================================================================
+echo.
+echo BESTE QUALITAET - nutzt gleiche Methode wie OBS!
+echo.
+echo Windows Graphics Capture API (Desktop Duplication)
+echo + Perfekte Farbgenauigkeit
+echo + Keine Ueberbelichtung
+echo + Ultra-schnell (GPU-basiert)
+echo + Funktioniert mit Fullscreen
+echo.
+echo WICHTIG: Installiere erst DXCam:
+echo   pip install dxcam
+echo.
+pause
+cd 1_data_collection
+python capture_auto_dxcam.py
+cd ..
+pause
+goto MENU
+
+:SCREENSHOT_OBS
+cls
+echo ====================================================================
+echo        SCREENSHOTS - OBS WebSocket
+echo ====================================================================
+echo.
+echo Macht Screenshots DIREKT ueber OBS!
+echo.
+echo Voraussetzungen:
+echo  1. OBS muss laufen
+echo  2. WebSocket aktiviert:
+echo     OBS - Tools - WebSocket Server Settings
+echo     - Enable WebSocket server
+echo  3. Python Package: pip install obsws-python
+echo.
+echo Vorteile:
+echo + PERFEKTE Qualitaet (direkt von OBS)
+echo + Nutzt deine OBS-Einstellungen
+echo + Keine zusaetzliche CPU-Last
+echo.
+pause
+cd 1_data_collection
+python capture_auto_obs_websocket.py
 cd ..
 pause
 goto MENU
