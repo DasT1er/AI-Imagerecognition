@@ -95,10 +95,13 @@ class SemiAutoLabeler:
         print(f"{Fore.YELLOW}Steuerung:")
         print(f"  TAB      - Team wechseln (CT/T)")
         print(f"  B/H/L    - Body/Head/Legs")
-        print(f"  DELETE   - Ausgewählte Box löschen")
+        print(f"  1-6      - Direkte Klassenwahl")
+        print(f"  U        - Letzte Box rückgängig (Undo)")
+        print(f"  DELETE   - Letzte Box löschen")
         print(f"  A        - Auto-Predict akzeptieren")
         print(f"  S        - Speichern")
         print(f"  D        - Überspringen")
+        print(f"  Q        - Beenden")
         print(f"{Fore.GREEN}{'='*70}\n")
 
     def get_current_class(self):
@@ -272,10 +275,11 @@ class SemiAutoLabeler:
         controls = [
             ("TAB", "Switch Team"),
             ("B/H/L", "Body/Head/Legs"),
+            ("1-6", "Direct Class"),
             ("A", "Accept Auto"),
             ("S", "Save"),
             ("D", "Skip"),
-            ("DEL", "Delete Box"),
+            ("U", "Undo"),
             ("Q", "Quit")
         ]
 
@@ -306,10 +310,25 @@ class SemiAutoLabeler:
                 x1, x2 = min(x1, x2), max(x1, x2)
                 y1, y2 = min(y1, y2), max(y1, y2)
 
-                if (x2 - x1) > 10 and (y2 - y1) > 10:
+                width = x2 - x1
+                height = y2 - y1
+
+                if width > 10 and height > 10:
                     current_class = self.get_current_class()
+
+                    # Warnungen wie im manuellen Tool
+                    if self.current_part == 'HEAD' and (width > 150 or height > 150):
+                        print(f"{Fore.YELLOW}  ⚠️  Head-Box sehr groß ({width}x{height}px)")
+
+                    if self.current_part == 'LEGS' and height > 200:
+                        print(f"{Fore.YELLOW}  ⚠️  Legs-Box sehr hoch ({width}x{height}px)")
+
+                    if self.current_part == 'BODY' and (width < 30 or height < 50):
+                        print(f"{Fore.YELLOW}  ⚠️  Body-Box sehr klein ({width}x{height}px)")
+
                     self.boxes.append((x1, y1, x2, y2, current_class))
-                    print(f"{Fore.GREEN}  ✓ {self.get_class_name(current_class)} hinzugefügt")
+                    class_name = self.get_class_name(current_class)
+                    print(f"{Fore.GREEN}  ✓ {class_name} Box hinzugefügt ({width}x{height}px)")
 
                 self.current_box = None
                 self.start_point = None
@@ -324,7 +343,7 @@ class SemiAutoLabeler:
 
     def save_labels(self, image_filename):
         if not self.boxes:
-            print(f"{Fore.YELLOW}  ⚠ Keine Boxen")
+            print(f"{Fore.YELLOW}  ⚠ Keine Boxen markiert")
             return
 
         img_path = os.path.join(self.input_dir, image_filename)
@@ -336,12 +355,17 @@ class SemiAutoLabeler:
 
         label_file = os.path.join(self.labels_output, os.path.splitext(image_filename)[0] + '.txt')
 
+        counts = {i: 0 for i in range(6)}
+
         with open(label_file, 'w') as f:
             for box in self.boxes:
                 class_id, xc, yc, bw, bh = self.convert_to_yolo(box, w, h)
                 f.write(f"{class_id} {xc:.6f} {yc:.6f} {bw:.6f} {bh:.6f}\n")
+                counts[class_id] += 1
 
-        print(f"{Fore.GREEN}✓ Gespeichert: {len(self.boxes)} boxes")
+        print(f"{Fore.GREEN}✓ Gespeichert:")
+        print(f"  CT: Body:{counts[0]} Head:{counts[1]} Legs:{counts[2]}")
+        print(f"  T:  Body:{counts[3]} Head:{counts[4]} Legs:{counts[5]}")
 
     def run(self):
         if not self.image_files:
@@ -432,6 +456,32 @@ class SemiAutoLabeler:
                     self.current_part = 'LEGS'
                     print(f"{Fore.MAGENTA}► Part: LEGS")
 
+                # Direkte Klassenwahl 1-6
+                elif key == ord('1'):
+                    self.current_team = 'CT'
+                    self.current_part = 'BODY'
+                    print(f"{Fore.CYAN}► Modus: CT BODY")
+                elif key == ord('2'):
+                    self.current_team = 'CT'
+                    self.current_part = 'HEAD'
+                    print(f"{Fore.CYAN}► Modus: CT HEAD")
+                elif key == ord('3'):
+                    self.current_team = 'CT'
+                    self.current_part = 'LEGS'
+                    print(f"{Fore.CYAN}► Modus: CT LEGS")
+                elif key == ord('4'):
+                    self.current_team = 'T'
+                    self.current_part = 'BODY'
+                    print(f"{Fore.YELLOW}► Modus: T BODY")
+                elif key == ord('5'):
+                    self.current_team = 'T'
+                    self.current_part = 'HEAD'
+                    print(f"{Fore.YELLOW}► Modus: T HEAD")
+                elif key == ord('6'):
+                    self.current_team = 'T'
+                    self.current_part = 'LEGS'
+                    print(f"{Fore.YELLOW}► Modus: T LEGS")
+
                 elif key == ord('a') or key == ord('A'):
                     # Akzeptiere Auto-Predictions
                     if self.boxes:
@@ -454,6 +504,14 @@ class SemiAutoLabeler:
                     self.auto_predicted = False
                     self.current_idx += 1
                     break
+
+                elif key == ord('u') or key == ord('U'):
+                    # Undo - Letzte Box entfernen
+                    if self.boxes:
+                        removed = self.boxes.pop()
+                        print(f"{Fore.YELLOW}  ↶ {self.get_class_name(removed[4])} Box entfernt")
+                    else:
+                        print(f"{Fore.YELLOW}  ⚠ Keine Boxen zum Entfernen")
 
                 elif key == 127 or key == 8:  # DELETE/BACKSPACE
                     if self.boxes:
