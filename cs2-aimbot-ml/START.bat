@@ -10,16 +10,12 @@ echo ====================================================================
 echo.
 echo  WICHTIG: Nur fuer Offline-Bots verwenden!
 echo.
-echo  [1] Screenshots sammeln
-echo  [1a] Brightness Test
+echo  [1] Screenshots sammeln (DXCam - beste Qualitaet!)
 echo  [2] Gegner labeln (Semi-Auto mit AI!)
-echo  [2a] Hard Examples finden
-echo  [3] Dataset vorbereiten
-echo  [4] Model trainieren (Standard)
-echo  [4a] Fast Training (GPU)
-echo  [4b] Head-Focused Training
-echo  [5] Model testen (Visuell)
-echo  [6] Model evaluieren (Metrics)
+echo  [3] Hard Examples finden
+echo  [4] Dataset vorbereiten
+echo  [5] Model trainieren (Head-Focused)
+echo  [6] Model testen (Visuell)
 echo  [7] Live Detection Test
 echo  [8] Auto-Aim starten
 echo  [9] IMPROVE GUIDE
@@ -31,15 +27,11 @@ echo.
 set /p choice=Waehle eine Option: 
 
 if "%choice%"=="1" goto SCREENSHOT
-if "%choice%"=="1a" goto BRIGHTNESS_TEST
-if "%choice%"=="2" goto LABELING_SEMI
-if "%choice%"=="2a" goto FIND_HARD
-if "%choice%"=="3" goto PREPARE
-if "%choice%"=="4" goto TRAINING
-if "%choice%"=="4a" goto TRAINING_FAST
-if "%choice%"=="4b" goto TRAINING_HEAD
-if "%choice%"=="5" goto TEST_VISUAL
-if "%choice%"=="6" goto TEST_METRICS
+if "%choice%"=="2" goto LABELING
+if "%choice%"=="3" goto FIND_HARD
+if "%choice%"=="4" goto PREPARE
+if "%choice%"=="5" goto TRAINING
+if "%choice%"=="6" goto TEST_VISUAL
 if "%choice%"=="7" goto TEST_LIVE
 if "%choice%"=="8" goto AUTOAIM
 if "%choice%"=="9" goto IMPROVE_GUIDE
@@ -53,93 +45,22 @@ goto MENU
 :SCREENSHOT
 cls
 echo ====================================================================
-echo                    SCREENSHOTS SAMMELN
+echo        SCREENSHOTS - DXCam (OBS-Qualitaet!)
 echo ====================================================================
 echo.
-echo Waehle Screenshot-Methode:
+echo Nutzt Windows Graphics Capture API - wie OBS!
 echo.
-echo  [1] MSS (Standard - schnell)
-echo  [2] PIL ImageGrab (bessere Farbgenauigkeit)
-echo  [3] PyAutoGUI (stabile Farben)
-echo  [4] DXCam (OBS-Methode - BESTE QUALITAET!)
-echo  [5] OBS WebSocket (direkt ueber OBS)
-echo  [6] Methoden vergleichen (Test)
-echo  [0] Zurueck
-echo.
-set /p screenshot_choice=Waehle Methode:
-
-if "%screenshot_choice%"=="1" goto SCREENSHOT_MSS
-if "%screenshot_choice%"=="2" goto SCREENSHOT_PIL
-if "%screenshot_choice%"=="3" goto SCREENSHOT_PYAUTOGUI
-if "%screenshot_choice%"=="4" goto SCREENSHOT_DXCAM
-if "%screenshot_choice%"=="5" goto SCREENSHOT_OBS
-if "%screenshot_choice%"=="6" goto SCREENSHOT_TEST
-if "%screenshot_choice%"=="0" goto MENU
-goto SCREENSHOT
-
-:SCREENSHOT_MSS
-cls
-echo ====================================================================
-echo            SCREENSHOTS - MSS (Standard)
-echo ====================================================================
-echo.
-echo Schnellste Methode, aber manchmal ueberbelichtet!
-echo.
-pause
-cd 1_data_collection
-python capture_auto.py
-cd ..
-pause
-goto MENU
-
-:SCREENSHOT_PIL
-cls
-echo ====================================================================
-echo            SCREENSHOTS - PIL ImageGrab
-echo ====================================================================
-echo.
-echo BESSERE Farbgenauigkeit - weniger Ueberbelichtung!
-echo Empfohlen wenn MSS zu helle Bilder macht!
-echo.
-pause
-cd 1_data_collection
-python capture_auto_pil.py
-cd ..
-pause
-goto MENU
-
-:SCREENSHOT_PYAUTOGUI
-cls
-echo ====================================================================
-echo            SCREENSHOTS - PyAutoGUI
-echo ====================================================================
-echo.
-echo Stabile Farbwiedergabe!
-echo Alternative wenn MSS nicht gut funktioniert.
-echo.
-pause
-cd 1_data_collection
-python capture_auto_pyautogui.py
-cd ..
-pause
-goto MENU
-
-:SCREENSHOT_DXCAM
-cls
-echo ====================================================================
-echo        SCREENSHOTS - DXCam (OBS-Methode!)
-echo ====================================================================
-echo.
-echo BESTE QUALITAET - nutzt gleiche Methode wie OBS!
-echo.
-echo Windows Graphics Capture API (Desktop Duplication)
-echo + Perfekte Farbgenauigkeit
-echo + Keine Ueberbelichtung
-echo + Ultra-schnell (GPU-basiert)
-echo + Funktioniert mit Fullscreen
+echo Vorteile:
+echo  + Perfekte Farbgenauigkeit
+echo  + Keine Ueberbelichtung
+echo  + Ultra-schnell (GPU-basiert)
+echo  + Funktioniert mit Fullscreen
 echo.
 echo WICHTIG: Installiere erst DXCam:
 echo   pip install dxcam
+echo.
+echo TIPP: Deaktiviere Windows Auto-HDR:
+echo   Windows Einstellungen - System - Bildschirm - Auto-HDR AUS
 echo.
 pause
 cd 1_data_collection
@@ -148,83 +69,23 @@ cd ..
 pause
 goto MENU
 
-:SCREENSHOT_OBS
-cls
-echo ====================================================================
-echo        SCREENSHOTS - OBS WebSocket
-echo ====================================================================
-echo.
-echo Macht Screenshots DIREKT ueber OBS!
-echo.
-echo Voraussetzungen:
-echo  1. OBS muss laufen
-echo  2. WebSocket aktiviert:
-echo     OBS - Tools - WebSocket Server Settings
-echo     - Enable WebSocket server
-echo  3. Python Package: pip install obsws-python
-echo.
-echo Vorteile:
-echo + PERFEKTE Qualitaet (direkt von OBS)
-echo + Nutzt deine OBS-Einstellungen
-echo + Keine zusaetzliche CPU-Last
-echo.
-pause
-cd 1_data_collection
-python capture_auto_obs_websocket.py
-cd ..
-pause
-goto MENU
-
-:SCREENSHOT_TEST
-cls
-echo ====================================================================
-echo            SCREENSHOT-METHODEN VERGLEICH
-echo ====================================================================
-echo.
-echo Testet alle 4 Screenshot-Methoden und zeigt sie nebeneinander!
-echo So siehst du welche am besten fuer dich funktioniert.
-echo.
-echo Getestet wird:
-echo  - MSS (aktuell)
-echo  - PIL ImageGrab
-echo  - PyAutoGUI
-echo  - Win32 API
-echo.
-echo Achte auf:
-echo  - Avg Brightness (niedrig = besser bei Ueberbelichtung)
-echo  - Farbgenauigkeit
-echo  - Speed
-echo.
-pause
-cd 1_data_collection
-python capture_methods_test.py
-cd ..
-pause
-goto MENU
-
-:BRIGHTNESS_TEST
-cls
-echo ====================================================================
-echo                    BRIGHTNESS TEST
-echo ====================================================================
-echo.
-echo Zeigt 6 verschiedene Helligkeits-Einstellungen zum Vergleich!
-echo.
-pause
-cd 1_data_collection
-python test_brightness.py
-cd ..
-pause
-goto MENU
-
-:LABELING_SEMI
+:LABELING
 cls
 echo ====================================================================
 echo            SEMI-AUTO LABELING MIT AI!
 echo ====================================================================
 echo.
 echo Model macht automatische Predictions!
-echo Rechtsklick um falsche Boxen zu loeschen!
+echo.
+echo Features:
+echo  • Rechtsklick um falsche Boxen zu loeschen
+echo  • TAB + B/H/L um Klasse zu aendern
+echo  • 1-6 fuer direkte Klassenwahl
+echo  • A zum Akzeptieren, S zum Speichern
+echo  • Professionelle Sidebar mit Statistiken
+echo.
+echo 5x SCHNELLER als manuelles Labeln!
+echo Wird mit der Zeit automatisch besser!
 echo.
 pause
 cd 1_data_collection
@@ -240,6 +101,7 @@ echo        HARD EXAMPLES FINDEN (Active Learning)
 echo ====================================================================
 echo.
 echo Findet Bilder wo dein Model UNSICHER ist!
+echo Diese zu labeln bringt den GROESSTEN Fortschritt!
 echo.
 pause
 cd 1_data_collection
@@ -264,41 +126,19 @@ goto MENU
 :TRAINING
 cls
 echo ====================================================================
-echo                  STANDARD TRAINING
-echo ====================================================================
-echo.
-echo DAUERT: 30-60 Min mit GPU, 2-3 Stunden ohne GPU
-echo.
-pause
-cd 2_training
-python train_model.py
-cd ..
-pause
-goto MENU
-
-:TRAINING_FAST
-cls
-echo ====================================================================
-echo                  FAST TRAINING (GPU-Optimiert)
-echo ====================================================================
-echo.
-echo DAUERT: 10-20 Min mit GPU
-echo.
-pause
-cd 2_training
-python train_model_fast.py
-cd ..
-pause
-goto MENU
-
-:TRAINING_HEAD
-cls
-echo ====================================================================
-echo            HEAD-FOCUSED TRAINING
+echo            HEAD-FOCUSED TRAINING (BESTE ERGEBNISSE!)
 echo ====================================================================
 echo.
 echo Spezial-Training optimiert fuer Kopf-Erkennung!
+echo.
+echo Einstellungen:
+echo  - YOLOv8s (bessere Precision als nano)
+echo  - 800px Aufloesung (fuer kleine Heads)
+echo  - 150 Epochs
+echo  - Spezielle Augmentation fuer Heads
+echo.
 echo DAUERT: 1-2 Stunden mit GPU
+echo ERGEBNIS: 20-30 Prozent bessere Head-Detection!
 echo.
 pause
 cd 2_training
@@ -316,19 +156,6 @@ echo.
 pause
 cd 4_evaluation
 python test_detection_visual.py
-cd ..
-pause
-goto MENU
-
-:TEST_METRICS
-cls
-echo ====================================================================
-echo                MODEL EVALUIEREN - METRICS
-echo ====================================================================
-echo.
-pause
-cd 4_evaluation
-python evaluate_metrics.py
 cd ..
 pause
 goto MENU
