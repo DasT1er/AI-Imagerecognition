@@ -1,7 +1,9 @@
 @echo off
-chcp 65001 >nul
+chcp 65001 >nul 2>&1
+if errorlevel 1 chcp 1252 >nul 2>&1
 title CS2 AI - 6-Class System
 color 0A
+setlocal enabledelayedexpansion
 
 :MENU
 cls
@@ -48,7 +50,7 @@ if "%choice%"=="0" goto EXIT
 
 echo.
 echo Ungueltige Auswahl!
-timeout /t 2 >nul
+pause >nul
 goto MENU
 
 :SCREENSHOT
