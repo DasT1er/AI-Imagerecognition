@@ -262,7 +262,7 @@ class TeamAwareAutoAim:
         team_text = f"YOUR TEAM: {self.player_team if self.player_team else 'DETECTING...'}"
         team_color = self.COLOR_CT if self.player_team == 'CT' else self.COLOR_T
         cv2.putText(overlay, team_text, (img.shape[1] - 300, 30),
-                   cv2.FONT_HERSHEY_BOLD, 0.7, team_color if self.player_team else (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.7, team_color if self.player_team else (255, 255, 255), 2)
 
         # FOV Circle
         cv2.circle(overlay, (self.screen_center_x, self.screen_center_y),

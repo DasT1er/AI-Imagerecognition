@@ -115,7 +115,7 @@ class TeamAwareLabeler:
 
         # Titel
         cv2.putText(sidebar, "LABELING MODE", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 40
 
         cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
@@ -128,7 +128,7 @@ class TeamAwareLabeler:
         cv2.rectangle(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset+45),
                      ct_color, -1 if ct_active else 2)
         cv2.putText(sidebar, "[1] ENEMY CT", (20, y_offset+28),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 0) if ct_active else (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if ct_active else (255, 255, 255), 2)
         y_offset += 60
 
         # Enemy T Button
@@ -137,7 +137,7 @@ class TeamAwareLabeler:
         cv2.rectangle(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset+45),
                      t_color, -1 if t_active else 2)
         cv2.putText(sidebar, "[2] ENEMY T", (20, y_offset+28),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 0) if t_active else (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if t_active else (255, 255, 255), 2)
         y_offset += 60
 
         # Head Button
@@ -146,7 +146,7 @@ class TeamAwareLabeler:
         cv2.rectangle(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset+45),
                      head_color, -1 if head_active else 2)
         cv2.putText(sidebar, "[3] HEAD", (20, y_offset+28),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 0) if head_active else (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if head_active else (255, 255, 255), 2)
         y_offset += 60
 
         # Legs Button
@@ -155,7 +155,7 @@ class TeamAwareLabeler:
         cv2.rectangle(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset+45),
                      legs_color, -1 if legs_active else 2)
         cv2.putText(sidebar, "[4] LEGS", (20, y_offset+28),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 0) if legs_active else (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if legs_active else (255, 255, 255), 2)
         y_offset += 70
 
         cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
@@ -169,7 +169,7 @@ class TeamAwareLabeler:
         legs_count = sum(1 for box in self.boxes if box[4] == self.CLASS_LEGS)
 
         cv2.putText(sidebar, "STATISTICS", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 30
 
         cv2.putText(sidebar, f"Enemy CT: {ct_count}", (20, y_offset),
@@ -194,7 +194,7 @@ class TeamAwareLabeler:
 
         # Team-Hinweis
         cv2.putText(sidebar, "TEAM COLORS", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 30
 
         # CT Symbol (Blau)
@@ -217,7 +217,7 @@ class TeamAwareLabeler:
 
         # Controls
         cv2.putText(sidebar, "CONTROLS", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 30
 
         controls = [
@@ -364,7 +364,7 @@ class TeamAwareLabeler:
             mode_text = f"Mode: {self.get_class_name(self.current_class)}"
             mode_color = self.get_class_color(self.current_class)
             cv2.putText(display_img, mode_text, (10, 70),
-                       cv2.FONT_HERSHEY_BOLD, 0.8, mode_color, 2)
+                       cv2.FONT_HERSHEY_DUPLEX, 0.8, mode_color, 2)
 
             # Sidebar
             sidebar = self.draw_sidebar(h)

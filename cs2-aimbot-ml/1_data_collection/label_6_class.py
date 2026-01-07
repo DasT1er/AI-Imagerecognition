@@ -161,7 +161,7 @@ class SixClassLabeler:
 
         # Titel
         cv2.putText(sidebar, "LABELING MODE", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.7, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255), 2)
         y_offset += 40
 
         cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
@@ -171,7 +171,7 @@ class SixClassLabeler:
         # Team-Auswahl
         team_color = self.COLOR_CT if self.current_team == 'CT' else self.COLOR_T
         cv2.putText(sidebar, f"TEAM: {self.current_team}", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.8, team_color, 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.8, team_color, 2)
         cv2.putText(sidebar, "(TAB to switch)", (10, y_offset + 25),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
         y_offset += 55
@@ -194,7 +194,7 @@ class SixClassLabeler:
 
             text = f"[{key}] {part}"
             cv2.putText(sidebar, text, (20, y_offset+28),
-                       cv2.FONT_HERSHEY_BOLD, 0.6, (0, 0, 0) if is_active else (255, 255, 255), 2)
+                       cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0) if is_active else (255, 255, 255), 2)
             y_offset += 55
 
         y_offset += 10
@@ -206,10 +206,10 @@ class SixClassLabeler:
         current_class = self.get_current_class()
         current_name = self.get_class_name(current_class)
         cv2.putText(sidebar, "CURRENT:", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 25
         cv2.putText(sidebar, current_name, (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.7, self.get_class_color(current_class), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.7, self.get_class_color(current_class), 2)
         y_offset += 35
 
         cv2.line(sidebar, (10, y_offset), (self.sidebar_width-10, y_offset),
@@ -225,7 +225,7 @@ class SixClassLabeler:
         t_legs = sum(1 for box in self.boxes if box[4] == self.CLASS_T_LEGS)
 
         cv2.putText(sidebar, "STATISTICS", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 30
 
         cv2.putText(sidebar, "CT Team:", (10, y_offset),
@@ -248,7 +248,7 @@ class SixClassLabeler:
 
         # Controls
         cv2.putText(sidebar, "CONTROLS", (10, y_offset),
-                   cv2.FONT_HERSHEY_BOLD, 0.6, (255, 255, 255), 2)
+                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 2)
         y_offset += 30
 
         controls = [
@@ -412,7 +412,7 @@ class SixClassLabeler:
             mode_text = f"Mode: {self.get_class_name(current_class)}"
             mode_color = self.get_class_color(current_class)
             cv2.putText(display_img, mode_text, (10, 70),
-                       cv2.FONT_HERSHEY_BOLD, 0.8, mode_color, 2)
+                       cv2.FONT_HERSHEY_DUPLEX, 0.8, mode_color, 2)
 
             # Sidebar
             sidebar = self.draw_sidebar(h)
