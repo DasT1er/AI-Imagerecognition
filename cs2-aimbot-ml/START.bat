@@ -12,6 +12,7 @@ echo.
 echo  WICHTIG: Nur fuer Offline-Bots verwenden!
 echo.
 echo  [1] Screenshots sammeln
+echo  [1a] Brightness Test (wenn zu hell/dunkel)
 echo  [2] Gegner labeln (Manual)
 echo  [2a] Semi-Auto Labeln (5x schneller!)
 echo  [2b] Hard Examples finden (Active Learning)
@@ -32,6 +33,7 @@ echo.
 set /p choice=Waehle eine Option:
 
 if "%choice%"=="1" goto SCREENSHOT
+if "%choice%"=="1a" goto BRIGHTNESS_TEST
 if "%choice%"=="2" goto LABELING
 if "%choice%"=="2a" goto LABELING_SEMI
 if "%choice%"=="2b" goto FIND_HARD
@@ -63,9 +65,41 @@ echo 1. Starte CS2 (Offline Bots!)
 echo 2. Spiele 10-15 Minuten
 echo 3. Druecke STRG+C zum Beenden
 echo.
+echo HINWEIS: Falls Screenshots zu hell/dunkel sind:
+echo          Nutze [1a] Brightness Test!
+echo.
 pause
 cd 1_data_collection
 python capture_auto.py
+cd ..
+pause
+goto MENU
+
+:BRIGHTNESS_TEST
+cls
+echo ====================================================================
+echo                    BRIGHTNESS TEST
+echo ====================================================================
+echo.
+echo Screenshots zu hell oder zu dunkel?
+echo.
+echo Dieses Tool zeigt 6 verschiedene Helligkeits-Einstellungen
+echo zum Vergleich!
+echo.
+echo Workflow:
+echo  1. Tool macht einen Test-Screenshot
+echo  2. Zeigt 6 verschiedene Korrekturen
+echo  3. Du waelst die beste aus
+echo  4. Passe capture_auto.py an
+echo.
+echo Beispiel-Einstellungen:
+echo  - zu hell: brightness_correction=0.80
+echo  - OK:      brightness_correction=0.85
+echo  - dunkel:  brightness_correction=1.0
+echo.
+pause
+cd 1_data_collection
+python test_brightness.py
 cd ..
 pause
 goto MENU
