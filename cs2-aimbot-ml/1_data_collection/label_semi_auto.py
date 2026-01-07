@@ -81,6 +81,7 @@ class SemiAutoLabeler:
         self.start_point = None
         self.sidebar_width = 350
         self.auto_predicted = False  # Flag für Auto-Predictions
+        self.selected_box_idx = None  # Für Box-Auswahl zum Löschen
 
         print(f"{Fore.YELLOW}Gefundene Bilder: {Fore.WHITE}{len(all_images)}")
         print(f"{Fore.GREEN}Bereits gelabelt: {Fore.WHITE}{len(existing_labels)}")
@@ -93,15 +94,16 @@ class SemiAutoLabeler:
             print(f"{Fore.YELLOW}Manueller Mode - labele wie gewohnt\n")
 
         print(f"{Fore.YELLOW}Steuerung:")
-        print(f"  TAB      - Team wechseln (CT/T)")
-        print(f"  B/H/L    - Body/Head/Legs")
-        print(f"  1-6      - Direkte Klassenwahl")
-        print(f"  U        - Letzte Box rückgängig (Undo)")
-        print(f"  DELETE   - Letzte Box löschen")
-        print(f"  A        - Auto-Predict akzeptieren")
-        print(f"  S        - Speichern")
-        print(f"  D        - Überspringen")
-        print(f"  Q        - Beenden")
+        print(f"  {Fore.CYAN}Linksklick  {Fore.WHITE}- Box ziehen (neue Box)")
+        print(f"  {Fore.CYAN}Rechtsklick {Fore.WHITE}- Box löschen (auf Box klicken)")
+        print(f"  TAB         - Team wechseln (CT/T)")
+        print(f"  B/H/L       - Body/Head/Legs")
+        print(f"  1-6         - Direkte Klassenwahl")
+        print(f"  U           - Letzte Box rückgängig (Undo)")
+        print(f"  A           - Auto-Predict akzeptieren")
+        print(f"  S           - Speichern")
+        print(f"  D           - Überspringen")
+        print(f"  Q           - Beenden")
         print(f"{Fore.GREEN}{'='*70}\n")
 
     def get_current_class(self):
@@ -273,12 +275,13 @@ class SemiAutoLabeler:
         y_offset += 30
 
         controls = [
+            ("LClick", "Draw Box"),
+            ("RClick", "Delete Box"),
             ("TAB", "Switch Team"),
             ("B/H/L", "Body/Head/Legs"),
             ("1-6", "Direct Class"),
             ("A", "Accept Auto"),
             ("S", "Save"),
-            ("D", "Skip"),
             ("U", "Undo"),
             ("Q", "Quit")
         ]
@@ -290,11 +293,30 @@ class SemiAutoLabeler:
 
         return sidebar
 
+    def find_box_at_point(self, x, y):
+        """Findet Box unter dem Cursor"""
+        for idx, box in enumerate(self.boxes):
+            x1, y1, x2, y2, _ = box
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                return idx
+        return None
+
     def mouse_callback(self, event, x, y, flags, param):
         if x >= param['img_width']:
             return
 
-        if event == cv2.EVENT_LBUTTONDOWN:
+        # Rechtsklick - Box löschen
+        if event == cv2.EVENT_RBUTTONDOWN:
+            box_idx = self.find_box_at_point(x, y)
+            if box_idx is not None:
+                removed_box = self.boxes.pop(box_idx)
+                class_name = self.get_class_name(removed_box[4])
+                print(f"{Fore.RED}  ✗ {class_name} Box gelöscht (Rechtsklick)")
+            else:
+                print(f"{Fore.YELLOW}  ⚠ Keine Box unter Cursor")
+
+        # Linksklick - Box zeichnen
+        elif event == cv2.EVENT_LBUTTONDOWN:
             self.drawing = True
             self.start_point = (x, y)
 

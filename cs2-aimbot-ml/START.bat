@@ -13,9 +13,8 @@ echo  WICHTIG: Nur fuer Offline-Bots verwenden!
 echo.
 echo  [1] Screenshots sammeln
 echo  [1a] Brightness Test (wenn zu hell/dunkel)
-echo  [2] Gegner labeln (Manual)
-echo  [2a] Semi-Auto Labeln (5x schneller!)
-echo  [2b] Hard Examples finden (Active Learning)
+echo  [2] Gegner labeln (Semi-Auto mit AI!)
+echo  [2a] Hard Examples finden (Active Learning)
 echo  [3] Dataset vorbereiten
 echo  [4] Model trainieren (Standard)
 echo  [4a] Fast Training (GPU-optimiert)
@@ -34,9 +33,8 @@ set /p choice=Waehle eine Option:
 
 if "%choice%"=="1" goto SCREENSHOT
 if "%choice%"=="1a" goto BRIGHTNESS_TEST
-if "%choice%"=="2" goto LABELING
-if "%choice%"=="2a" goto LABELING_SEMI
-if "%choice%"=="2b" goto FIND_HARD
+if "%choice%"=="2" goto LABELING_SEMI
+if "%choice%"=="2a" goto FIND_HARD
 if "%choice%"=="3" goto PREPARE
 if "%choice%"=="4" goto TRAINING
 if "%choice%"=="4a" goto TRAINING_FAST
@@ -104,56 +102,33 @@ cd ..
 pause
 goto MENU
 
-:LABELING
-cls
-echo ====================================================================
-echo                  6-CLASS LABELING (Manual)
-echo ====================================================================
-echo.
-echo 6 Klassen zum Labeln:
-echo  CT Team:                     T Team:
-echo    [1] CT Body (Koerper)        [4] T Body (Koerper)
-echo    [2] CT Head (Kopf)           [5] T Head (Kopf)
-echo    [3] CT Legs (Beine)          [6] T Legs (Beine)
-echo.
-echo Workflow pro Spieler:
-echo  1. TAB druecken zum Team-Wechsel (CT oder T)
-echo  2. B/H/L druecken fuer Body/Head/Legs
-echo  3. Box um Spieler-Teil ziehen
-echo  4. Fuer jeden Spieler wiederholen
-echo  5. S druecken zum Speichern
-echo.
-echo TIPP: Du entscheidest beim Labeln welches Team!
-echo       Schaue auf Ausruestung/Farbe der Spieler.
-echo.
-pause
-cd 1_data_collection
-python label_6_class.py
-cd ..
-pause
-goto MENU
-
 :LABELING_SEMI
 cls
 echo ====================================================================
-echo            SEMI-AUTO LABELING (5x SCHNELLER!)
+echo            SEMI-AUTO LABELING MIT AI!
 echo ====================================================================
 echo.
-echo Nutzt dein bestehendes Model um VORZULABELN!
+echo Das AI-gesteuerte Labeling Tool!
+echo.
+echo Features:
+echo  • Model macht automatische Predictions
+echo  • Rechtsklick um falsche Boxen zu loeschen
+echo  • TAB + B/H/L um Klasse zu aendern
+echo  • 1-6 fuer direkte Klassenwahl
+echo  • A zum Akzeptieren, S zum Speichern
+echo  • Professionelle Sidebar mit Statistiken
 echo.
 echo Workflow:
-echo  1. Model macht automatische Predictions
-echo  2. Du korrigierst/ergaenzt nur noch
-echo  3. Druecke A zum Akzeptieren wenn gut
-echo  4. Oder korrigiere manuell
-echo  5. 5x schneller als von Grund auf!
+echo  1. Model macht erste Predictions
+echo  2. Rechtsklick auf falsche Boxen (z.B. T als CT)
+echo  3. Ergaenze fehlende Boxen mit Linksklick
+echo  4. A druecken zum Akzeptieren
 echo.
-echo TIPP:
-echo  - Sammle erst 100-200 neue Screenshots
-echo  - Dann nutze dieses Tool
-echo  - In 1-2 Stunden hast du 200 neue Labels!
+echo 5x SCHNELLER als manuelles Labeln!
+echo Wird mit der Zeit automatisch besser!
 echo.
-echo Braucht: Trainiertes Model (best.pt)
+echo Hinweis: Beim ersten Mal ohne Model startet
+echo          manueller Modus (normal labeln).
 echo.
 pause
 cd 1_data_collection
