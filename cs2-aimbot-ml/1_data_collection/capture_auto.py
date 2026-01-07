@@ -156,10 +156,11 @@ if __name__ == "__main__":
                                 # oder 3.0 für langsamer
 
         # HELLIGKEIT ANPASSEN:
-        brightness_correction=0.85,  # 0.85 = 15% dunkler (empfohlen bei Überbelichtung)
-                                     # 1.0  = Original
+        brightness_correction=0.65,  # 0.65 = 35% dunkler (stark ueberbelichtet)
+                                     # 0.70 = 30% dunkler
                                      # 0.75 = 25% dunkler
-                                     # 1.15 = 15% heller
+                                     # 0.85 = 15% dunkler
+                                     # 1.0  = Original
 
         # GAMMA-KORREKTUR (gegen Überbelichtung):
         apply_gamma_correction=True  # True = Korrigiert überbelichtete Bilder

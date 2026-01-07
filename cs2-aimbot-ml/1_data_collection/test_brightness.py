@@ -71,10 +71,10 @@ def main():
     tests = [
         ("Original", 1.0, False),
         ("Gamma Only", 1.0, True),
-        ("85% + Gamma", 0.85, True),
-        ("75% + Gamma", 0.75, True),
-        ("90% + Gamma", 0.90, True),
         ("80% + Gamma", 0.80, True),
+        ("70% + Gamma", 0.70, True),
+        ("65% + Gamma", 0.65, True),
+        ("60% + Gamma", 0.60, True),
     ]
 
     # Erstelle Vergleichsbild
@@ -103,10 +103,11 @@ def main():
     print(f"{Fore.GREEN}{'='*60}")
     print(f"{Fore.CYAN}Vergleich wird angezeigt!")
     print(f"{Fore.GREEN}{'='*60}\n")
-    print(f"{Fore.YELLOW}Empfehlung:")
-    print(f"  • Wenn zu hell: Nutze '85% + Gamma' oder '80% + Gamma'")
-    print(f"  • Wenn OK: Nutze 'Gamma Only' oder '90% + Gamma'")
-    print(f"  • Wenn zu dunkel: Nutze 'Original'\n")
+    print(f"{Fore.YELLOW}Empfehlung bei stark ueberbelichteten Screenshots:")
+    print(f"  • Stark ueberbelichtet: '60% + Gamma' oder '65% + Gamma'")
+    print(f"  • Etwas zu hell: '70% + Gamma' oder '80% + Gamma'")
+    print(f"  • OK: 'Gamma Only'\n")
+    print(f"{Fore.CYAN}TIPP: Senke auch CS2 In-Game Brightness auf 0.7-0.8!\n")
     print(f"{Fore.WHITE}Drücke eine beliebige Taste zum Beenden...\n")
 
     cv2.imshow('Brightness Test - Welche Einstellung ist am besten?', grid)
@@ -114,8 +115,11 @@ def main():
     cv2.destroyAllWindows()
 
     print(f"\n{Fore.CYAN}Setze deine gewünschte Einstellung in capture_auto.py:")
-    print(f"{Fore.WHITE}  brightness_correction=0.85  # Ändere diesen Wert")
-    print(f"{Fore.WHITE}  apply_gamma_correction=True # True oder False\n")
+    print(f"{Fore.WHITE}  brightness_correction=0.65  # Aendere diesen Wert (0.60-0.80)")
+    print(f"{Fore.WHITE}  apply_gamma_correction=True # True empfohlen\n")
+    print(f"\n{Fore.YELLOW}WICHTIG: Senke auch CS2 Brightness:")
+    print(f"{Fore.WHITE}  CS2 → Einstellungen → Video → Erweitert → Brightness")
+    print(f"{Fore.WHITE}  Setze auf 0.7 oder niedriger!\n")
 
 if __name__ == "__main__":
     try:
