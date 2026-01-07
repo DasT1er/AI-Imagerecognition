@@ -71,7 +71,7 @@ class TeamAwareAutoAim:
 
         # Screen
         self.sct = mss.mss()
-        self.monitor = self.sct.monitors[1]
+        self.monitor = self.select_monitor()
         self.screen_center_x = self.monitor['width'] // 2
         self.screen_center_y = self.monitor['height'] // 2
 
@@ -98,6 +98,43 @@ class TeamAwareAutoAim:
         print(f"{Fore.WHITE}  RMB halten = AIM AKTIV")
         print(f"{Fore.WHITE}  Q = Beenden")
         print(f"{Fore.GREEN}{'='*70}\n")
+
+    def select_monitor(self):
+        """Lässt User Monitor auswählen"""
+        monitors = self.sct.monitors
+
+        print(f"{Fore.GREEN}{'='*70}")
+        print(f"{Fore.CYAN}Monitor-Auswahl")
+        print(f"{Fore.GREEN}{'='*70}\n")
+
+        print(f"{Fore.YELLOW}Verfügbare Monitore:\n")
+
+        # Monitor 0 ist "All Monitors" - überspringen
+        for i in range(1, len(monitors)):
+            mon = monitors[i]
+            print(f"{Fore.CYAN}[{i}] {Fore.WHITE}Monitor {i}")
+            print(f"    Auflösung: {mon['width']}x{mon['height']}")
+            print(f"    Position: X={mon['left']}, Y={mon['top']}")
+            print()
+
+        # User Input
+        while True:
+            try:
+                choice = input(f"{Fore.YELLOW}Wähle Monitor (1-{len(monitors)-1}): {Fore.WHITE}")
+                monitor_num = int(choice)
+
+                if 1 <= monitor_num < len(monitors):
+                    selected = monitors[monitor_num]
+                    print(f"\n{Fore.GREEN}✓ Monitor {monitor_num} gewählt!")
+                    print(f"  {selected['width']}x{selected['height']}\n")
+                    return selected
+                else:
+                    print(f"{Fore.RED}Ungültige Auswahl! Wähle zwischen 1 und {len(monitors)-1}")
+            except ValueError:
+                print(f"{Fore.RED}Bitte eine Zahl eingeben!")
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Abgebrochen.")
+                exit(0)
 
     def detect_player_team(self, screen):
         """

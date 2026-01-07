@@ -61,9 +61,11 @@ class SixClassAutoAim:
         # Screenshot
         self.sct = mss.mss()
 
+        # Monitor-Auswahl
+        self.monitor = self.select_monitor()
+
         # Screen center
-        screen_width, screen_height = pyautogui.size()
-        self.screen_center = (screen_width // 2, screen_height // 2)
+        self.screen_center = (self.monitor['width'] // 2, self.monitor['height'] // 2)
 
         print(f"\n{Fore.YELLOW}Konfiguration:")
         print(f"  Confidence:     {self.confidence_threshold}")
@@ -79,6 +81,43 @@ class SixClassAutoAim:
         print(f"  • Icons über Spielern")
         print(f"  • Crosshair-Kreis mit X (Teammates)")
         print(f"\n{Fore.GREEN}{'='*70}\n")
+
+    def select_monitor(self):
+        """Lässt User Monitor auswählen"""
+        monitors = self.sct.monitors
+
+        print(f"{Fore.GREEN}{'='*70}")
+        print(f"{Fore.CYAN}Monitor-Auswahl")
+        print(f"{Fore.GREEN}{'='*70}\n")
+
+        print(f"{Fore.YELLOW}Verfügbare Monitore:\n")
+
+        # Monitor 0 ist "All Monitors" - überspringen
+        for i in range(1, len(monitors)):
+            mon = monitors[i]
+            print(f"{Fore.CYAN}[{i}] {Fore.WHITE}Monitor {i}")
+            print(f"    Auflösung: {mon['width']}x{mon['height']}")
+            print(f"    Position: X={mon['left']}, Y={mon['top']}")
+            print()
+
+        # User Input
+        while True:
+            try:
+                choice = input(f"{Fore.YELLOW}Wähle Monitor (1-{len(monitors)-1}): {Fore.WHITE}")
+                monitor_num = int(choice)
+
+                if 1 <= monitor_num < len(monitors):
+                    selected = monitors[monitor_num]
+                    print(f"\n{Fore.GREEN}✓ Monitor {monitor_num} gewählt!")
+                    print(f"  {selected['width']}x{selected['height']}\n")
+                    return selected
+                else:
+                    print(f"{Fore.RED}Ungültige Auswahl! Wähle zwischen 1 und {len(monitors)-1}")
+            except ValueError:
+                print(f"{Fore.RED}Bitte eine Zahl eingeben!")
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Abgebrochen.")
+                exit(0)
 
     def detect_player_team(self, screen):
         """
@@ -218,8 +257,7 @@ class SixClassAutoAim:
         Verarbeitet ein Frame
         """
         # Screenshot
-        monitor = self.sct.monitors[1]
-        screenshot = self.sct.grab(monitor)
+        screenshot = self.sct.grab(self.monitor)
         frame = np.array(screenshot)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 

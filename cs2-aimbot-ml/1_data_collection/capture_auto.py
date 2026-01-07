@@ -1,15 +1,16 @@
 """
-CS2 Auto-Screenshot Tool (Einfach!)
-====================================
+CS2 Auto-Screenshot Tool (Multi-Monitor Support!)
+==================================================
 Macht AUTOMATISCH alle paar Sekunden Screenshots.
 Kein Hotkey nötig - läuft einfach im Hintergrund!
 
 Verwendung:
 1. Starte dieses Script
-2. Starte CS2
-3. Spiele einfach normal!
-4. Screenshots werden automatisch gemacht
-5. Drücke CTRL+C im Terminal zum Beenden
+2. Wähle deinen Monitor aus
+3. Starte CS2
+4. Spiele einfach normal!
+5. Screenshots werden automatisch gemacht
+6. Drücke CTRL+C im Terminal zum Beenden
 """
 
 import mss
@@ -37,17 +38,57 @@ class AutoScreenshot:
         os.makedirs(output_dir, exist_ok=True)
         self.screenshot_count = 0
         self.sct = mss.mss()
-        self.monitor = self.sct.monitors[1]
 
-        print(f"{Fore.GREEN}{'='*60}")
+        # Monitor-Auswahl
+        self.monitor = self.select_monitor()
+
+        print(f"\n{Fore.GREEN}{'='*60}")
         print(f"{Fore.CYAN}CS2 Auto-Screenshot Tool")
         print(f"{Fore.GREEN}{'='*60}")
         print(f"{Fore.YELLOW}Einstellungen:")
+        print(f"  Monitor: {Fore.CYAN}{self.monitor['width']}x{self.monitor['height']}")
         print(f"  Interval: {Fore.CYAN}{interval_seconds} Sekunden")
         print(f"  Ausgabe: {Fore.CYAN}{output_dir}")
         print(f"\n{Fore.WHITE}Macht automatisch alle {interval_seconds}s einen Screenshot!")
         print(f"{Fore.YELLOW}Drücke CTRL+C zum Beenden\n")
         print(f"{Fore.GREEN}{'='*60}\n")
+
+    def select_monitor(self):
+        """Lässt User Monitor auswählen"""
+        monitors = self.sct.monitors
+
+        print(f"{Fore.GREEN}{'='*60}")
+        print(f"{Fore.CYAN}Monitor-Auswahl")
+        print(f"{Fore.GREEN}{'='*60}\n")
+
+        print(f"{Fore.YELLOW}Verfügbare Monitore:\n")
+
+        # Monitor 0 ist "All Monitors" - überspringen
+        for i in range(1, len(monitors)):
+            mon = monitors[i]
+            print(f"{Fore.CYAN}[{i}] {Fore.WHITE}Monitor {i}")
+            print(f"    Auflösung: {mon['width']}x{mon['height']}")
+            print(f"    Position: X={mon['left']}, Y={mon['top']}")
+            print()
+
+        # User Input
+        while True:
+            try:
+                choice = input(f"{Fore.YELLOW}Wähle Monitor (1-{len(monitors)-1}): {Fore.WHITE}")
+                monitor_num = int(choice)
+
+                if 1 <= monitor_num < len(monitors):
+                    selected = monitors[monitor_num]
+                    print(f"\n{Fore.GREEN}✓ Monitor {monitor_num} gewählt!")
+                    print(f"  {selected['width']}x{selected['height']}\n")
+                    return selected
+                else:
+                    print(f"{Fore.RED}Ungültige Auswahl! Wähle zwischen 1 und {len(monitors)-1}")
+            except ValueError:
+                print(f"{Fore.RED}Bitte eine Zahl eingeben!")
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Abgebrochen.")
+                exit(0)
 
     def capture_screenshot(self):
         """Macht einen Screenshot"""
