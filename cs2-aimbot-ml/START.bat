@@ -113,12 +113,12 @@ echo.
 echo Das AI-gesteuerte Labeling Tool!
 echo.
 echo Features:
-echo  â€¢ Model macht automatische Predictions
-echo  â€¢ Rechtsklick um falsche Boxen zu loeschen
-echo  â€¢ TAB + B/H/L um Klasse zu aendern
-echo  â€¢ 1-6 fuer direkte Klassenwahl
-echo  â€¢ A zum Akzeptieren, S zum Speichern
-echo  â€¢ Professionelle Sidebar mit Statistiken
+echo  • Model macht automatische Predictions
+echo  • Rechtsklick um falsche Boxen zu loeschen
+echo  • TAB + B/H/L um Klasse zu aendern
+echo  • 1-6 fuer direkte Klassenwahl
+echo  • A zum Akzeptieren, S zum Speichern
+echo  • Professionelle Sidebar mit Statistiken
 echo.
 echo Workflow:
 echo  1. Model macht erste Predictions
