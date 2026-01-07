@@ -1,21 +1,21 @@
 @echo off
 chcp 65001 >nul
-title CS2 AI - Team-Aware System
+title CS2 AI - 6-Class System
 color 0A
 
 :MENU
 cls
 echo ====================================================================
-echo              CS2 AI AIMBOT - TEAM-AWARE SYSTEM
+echo              CS2 AI AIMBOT - 6-CLASS SYSTEM
 echo ====================================================================
 echo.
 echo  WICHTIG: Nur fuer Offline-Bots verwenden!
 echo.
 echo  [1] Screenshots sammeln
-echo  [2] Gegner labeln (4 Klassen: CT/T/Head/Legs)
+echo  [2] Gegner labeln (6 Klassen: CT/T x Body/Head/Legs)
 echo  [3] Dataset vorbereiten
 echo  [4] Model trainieren
-echo  [5] Auto-Aim starten (Team-Aware!)
+echo  [5] Auto-Aim starten (Erweiterte Team-Erkennung!)
 echo  [0] Beenden
 echo.
 echo ====================================================================
@@ -57,25 +57,28 @@ goto MENU
 :LABELING
 cls
 echo ====================================================================
-echo                TEAM-AWARE MULTI-CLASS LABELING
+echo                  6-CLASS LABELING SYSTEM
 echo ====================================================================
 echo.
-echo 4 Klassen zum Labeln:
-echo  [1] Enemy CT  - Counter-Terrorist (Blau)
-echo  [2] Enemy T   - Terrorist (Orange)
-echo  [3] Head      - Kopf
-echo  [4] Legs      - Beine
+echo 6 Klassen zum Labeln:
+echo  CT Team:                     T Team:
+echo    [1] CT Body (Koerper)        [4] T Body (Koerper)
+echo    [2] CT Head (Kopf)           [5] T Head (Kopf)
+echo    [3] CT Legs (Beine)          [6] T Legs (Beine)
 echo.
-echo Workflow pro Gegner:
-echo  1. Schaue ob CT (blau) oder T (orange)
-echo  2. Druecke 1 oder 2 -^> Box um ganzen Gegner
-echo  3. Druecke 3 -^> Box um Kopf
-echo  4. Druecke 4 -^> Box um Beine
-echo  5. Druecke S zum Speichern
+echo Workflow pro Spieler:
+echo  1. TAB druecken zum Team-Wechsel (CT oder T)
+echo  2. B/H/L druecken fuer Body/Head/Legs
+echo  3. Box um Spieler-Teil ziehen
+echo  4. Fuer jeden Spieler wiederholen
+echo  5. S druecken zum Speichern
+echo.
+echo TIPP: Du entscheidest beim Labeln welches Team!
+echo       Schaue auf Ausruestung/Farbe der Spieler.
 echo.
 pause
 cd 1_data_collection
-python label_team_aware.py
+python label_6_class.py
 cd ..
 pause
 goto MENU
@@ -86,11 +89,11 @@ echo ====================================================================
 echo                    DATASET VORBEREITEN
 echo ====================================================================
 echo.
-echo Bereitet 4-Klassen Dataset vor...
+echo Bereitet 6-Klassen Dataset vor...
 echo.
 pause
 cd 1_data_collection
-python prepare_dataset_team_aware.py
+python prepare_dataset_6class.py
 cd ..
 pause
 goto MENU
@@ -104,9 +107,9 @@ echo.
 echo ACHTUNG: Dauert 30 Min - 2 Stunden!
 echo.
 echo Die AI lernt:
-echo  - CT vs T erkennen
-echo  - Koepfe finden
-echo  - Beine erkennen
+echo  - CT Team: Body, Head, Legs
+echo  - T Team: Body, Head, Legs
+echo  - 6 separate Klassen fuer praezise Erkennung
 echo.
 pause
 cd 2_training
@@ -119,25 +122,28 @@ goto MENU
 cls
 color 0C
 echo ====================================================================
-echo              TEAM-AWARE AUTO-AIM SYSTEM
+echo           6-CLASS AUTO-AIM MIT ERWEITERTER TEAM-ERKENNUNG
 echo ====================================================================
 echo.
 echo NUR FUER OFFLINE-BOTS!
 echo.
 echo Features:
-echo  - Erkennt DEIN Team (Blau=CT, Orange=T)
+echo  - 3-Fach Team-Erkennung:
+echo    1. UI-Farbe (Blau=CT, Orange=T)
+echo    2. Icons ueber Spielern
+echo    3. Crosshair-Kreis mit X (Teammates)
 echo  - Zielt NUR auf gegnerisches Team
 echo  - KEIN Friendly Fire!
-echo  - Praezise Kopf-Erkennung
+echo  - Separate Erkennung fuer CT/T x Body/Head/Legs
 echo.
 echo Steuerung:
-echo  RMB halten = Aim aktiv
+echo  SHIFT halten = Aim aktiv
 echo  Q = Beenden
 echo.
 pause
 color 0A
 cd 3_detection
-python auto_aim_team_aware.py
+python auto_aim_6class.py ../data/yolo_6class/runs/detect/train/weights/best.pt
 cd ..
 pause
 goto MENU
