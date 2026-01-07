@@ -170,7 +170,7 @@ def main():
 
     # Konfiguration
     trainer = CS2Trainer(
-        data_yaml="../data/data.yaml",
+        data_yaml="../data/yolo_6class/data.yaml",  # 6-Class Dataset
         model_size="n",      # 'n' für schnelles Training, 's' oder 'm' für bessere Accuracy
         epochs=100,          # Mehr Epochs = besser, aber länger
         imgsz=640,           # Standardgröße
