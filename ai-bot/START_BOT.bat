@@ -1,8 +1,9 @@
 @echo off
-chcp 65001 >nul 2>&1
-if errorlevel 1 chcp 1252 >nul 2>&1
-setlocal enabledelayedexpansion
+title CS2 AI Bot
+color 0A
 
+:MENU
+cls
 echo.
 echo ================================================================
 echo   CS2 AI BOT - AUTONOMOUS GAMEPLAY
@@ -14,9 +15,6 @@ echo   PHASE 3: Full Autonomy (Economy, Strategy, Multi-Map)
 echo.
 echo ================================================================
 echo.
-
-:MENU
-echo.
 echo === PHASE 1: Imitation Learning ===
 echo   [1] Human Gameplay aufnehmen (F9 Start/Stop)
 echo   [2] Model trainieren (Imitation Learning)
@@ -26,17 +24,17 @@ echo === PHASE 2: Reinforcement Learning (NEU!) ===
 echo   [4] PPO Training (Hybrid - von DIR lernen + selbst verbessern!)
 echo   [5] ADVANCED Bot (mit AIMBOT + VISUAL OVERLAY!)
 echo.
-echo === Tests & Tools ===
+echo === Tests und Tools ===
 echo   [6] Game State Detector testen
 echo   [7] Visual Overlay testen
 echo   [8] Reward System testen
 echo.
 echo   [R] README anzeigen (Architektur)
-echo   [9] Zurück zum Hauptmenü
+echo   [9] Zurueck zum Hauptmenue
 echo   [0] Beenden
 echo.
 
-set /p choice="Deine Wahl: "
+set /p choice=Deine Wahl:
 
 if "%choice%"=="1" goto COLLECT
 if "%choice%"=="2" goto TRAIN
@@ -51,10 +49,12 @@ if "%choice%"=="9" goto MAINMENU
 if "%choice%"=="0" goto END
 
 echo.
-echo Ungültige Eingabe!
+echo Ungueltige Eingabe!
+pause
 goto MENU
 
 :COLLECT
+cls
 echo.
 echo ================================================================
 echo   HUMAN GAMEPLAY AUFNEHMEN
@@ -63,9 +63,9 @@ echo.
 echo Anleitung:
 echo   1. Starte CS2 (Offline gegen Bots)
 echo   2. Druecke F9 zum Starten der Aufnahme
-echo   3. Spiele 1-2 Runden NORMAL (wie DU spielen würdest!)
+echo   3. Spiele 1-2 Runden NORMAL (wie DU spielen wuerdest!)
 echo   4. Druecke F9 zum Stoppen
-echo   5. Wiederhole für mehrere Sessions
+echo   5. Wiederhole fuer mehrere Sessions
 echo.
 echo Ziel: 10-20 Runden (5000-20000 Frames)
 echo.
@@ -74,6 +74,7 @@ python 3_learning/imitation/collect_human_data.py
 goto MENU
 
 :TRAIN
+cls
 echo.
 echo ================================================================
 echo   MODEL TRAINIEREN (IMITATION LEARNING)
@@ -82,8 +83,8 @@ echo.
 echo Der Bot lernt DEINE Actions!
 echo.
 echo Architektur:
-echo   - CNN für Screenshots (84x84)
-echo   - Fully Connected für Actions
+echo   - CNN fuer Screenshots (84x84)
+echo   - Fully Connected fuer Actions
 echo   - Supervised Learning (CrossEntropy Loss)
 echo.
 echo Training dauert ca. 10-30 Minuten (je nach Daten Menge)
@@ -91,13 +92,14 @@ echo.
 pause
 python 3_learning/imitation/train_imitation.py
 echo.
-echo ✅ Training abgeschlossen!
+echo Training abgeschlossen!
 echo    Model: models/best_model.pt
 echo.
 pause
 goto MENU
 
 :TEST
+cls
 echo.
 echo ================================================================
 echo   BOT TESTEN (PHASE 1 - Imitation Only)
@@ -130,7 +132,7 @@ echo   3. Nutzt cleveres Reward System (Anti-Camping!)
 echo.
 echo Features:
 echo   + Lernt von deinem Gameplay
-echo   + Verbessert sich selbständig
+echo   + Verbessert sich selbstaendig
 echo   + Belohnt aggressive Aktionen
 echo   + Bestraft Camping/Zeitverschwendung
 echo.
@@ -144,7 +146,7 @@ echo.
 pause
 python 3_learning/reinforcement/train_ppo_hybrid.py
 echo.
-echo ✅ PPO Training abgeschlossen!
+echo PPO Training abgeschlossen!
 echo    Model: models/ppo_final.zip
 echo.
 pause
@@ -159,20 +161,38 @@ echo   ADVANCED BOT - MIT AIMBOT + VISUAL OVERLAY!
 echo ================================================================
 echo.
 echo FEATURES:
-echo   ✓ PPO oder Imitation Model
-echo   ✓ AIMBOT IMMER AKTIV (perfektes Zielen!)
-echo   ✓ VISUAL OVERLAY (siehst was Bot sieht!)
-echo   ✓ Gegner-Boxen (Gelb = Kopf, Rot = Body)
-echo   ✓ Game State HUD (HP, Armor, Ammo, Money)
-echo   ✓ Threat Level Bar
-echo   ✓ Action Display
-echo   ✓ FPS Counter
+echo   * PPO oder Imitation Model
+echo   * AIMBOT IMMER AKTIV (perfektes Zielen!)
+echo   * VISUAL OVERLAY (siehst was Bot sieht!)
+echo   * Gegner-Boxen (Gelb = Kopf, Rot = Body)
+echo   * Game State HUD (HP, Armor, Ammo, Money)
+echo   * Threat Level Bar
+echo   * Action Display
+echo   * FPS Counter
 echo.
 echo DU SIEHST GENAU WAS DER BOT MACHT!
 echo.
 pause
 color 0A
 python test_bot_advanced.py
+goto MENU
+
+:GAMESTATE
+cls
+echo.
+echo ================================================================
+echo   GAME STATE DETECTOR TEST
+echo ================================================================
+echo.
+echo Testet Erkennung von:
+echo   - HP (Health Points)
+echo   - Armor
+echo   - Ammo (Current/Reserve)
+echo   - Money
+echo   - Round Time
+echo.
+pause
+python 1_vision/game_state.py
 goto MENU
 
 :TEST_OVERLAY
@@ -212,39 +232,8 @@ pause
 python 3_learning/reinforcement/reward_shaper.py
 goto MENU
 
-:GAMESTATE
-echo.
-echo ================================================================
-echo   GAME STATE DETECTOR TEST
-echo ================================================================
-echo.
-echo Testet Erkennung von:
-echo   - HP (Health Points)
-echo   - Armor
-echo   - Ammo (Current/Reserve)
-echo   - Money
-echo   - Round Time
-echo.
-pause
-python 1_vision/game_state.py
-goto MENU
-
-:ENVIRONMENT
-echo.
-echo ================================================================
-echo   CS2 ENVIRONMENT TEST
-echo ================================================================
-echo.
-echo Testet Gymnasium-kompatibles Environment:
-echo   - Observation Space (visual + game state + enemies)
-echo   - Action Space (20 discrete actions)
-echo   - Reward System
-echo.
-pause
-python 4_environment/cs2_env.py
-goto MENU
-
 :README
+cls
 echo.
 echo ================================================================
 echo   README - AI BOT ARCHITEKTUR
@@ -257,12 +246,14 @@ goto MENU
 
 :MAINMENU
 cd ..
+cd cs2-aimbot-ml
 call START.bat
 exit
 
 :END
+cls
 echo.
-echo ✅ Bis zum naechsten Mal!
+echo Bis zum naechsten Mal!
 echo.
-pause
+timeout /t 2
 exit
