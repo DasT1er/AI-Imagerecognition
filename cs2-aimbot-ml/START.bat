@@ -19,6 +19,9 @@ echo  [6] Model testen (Visuell)
 echo  [7] Live Detection Test
 echo  [8] Auto-Aim starten
 echo  [9] IMPROVE GUIDE
+echo.
+echo  [A] AI BOT (Autonomer CS2 Bot - NEU!)
+echo.
 echo  [0] Beenden
 echo.
 echo ====================================================================
@@ -35,6 +38,7 @@ if "%choice%"=="6" goto TEST_VISUAL
 if "%choice%"=="7" goto TEST_LIVE
 if "%choice%"=="8" goto AUTOAIM
 if "%choice%"=="9" goto IMPROVE_GUIDE
+if /I "%choice%"=="A" goto AIBOT
 if "%choice%"=="0" goto EXIT
 
 echo.
@@ -195,6 +199,24 @@ echo ====================================================================
 echo.
 pause
 start IMPROVE_GUIDE.md
+goto MENU
+
+:AIBOT
+cls
+echo ====================================================================
+echo              AI BOT - AUTONOMER CS2 BOT
+echo ====================================================================
+echo.
+echo Der Bot LERNT Counter-Strike zu spielen!
+echo.
+echo Phase 1: Imitation Learning (Lernt von DIR!)
+echo Phase 2: Reinforcement Learning (Self-Improvement)
+echo Phase 3: Full Autonomy (Economy, Strategy, Multi-Map)
+echo.
+pause
+cd ..\ai-bot
+call START_BOT.bat
+cd ..\cs2-aimbot-ml
 goto MENU
 
 :EXIT
