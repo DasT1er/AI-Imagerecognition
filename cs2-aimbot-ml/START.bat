@@ -10,7 +10,7 @@ echo ====================================================================
 echo.
 echo  WICHTIG: Nur fuer Offline-Bots verwenden!
 echo.
-echo  [1] Screenshots sammeln (DXCam - beste Qualitaet!)
+echo  [1] Screenshots sammeln (PIL ImageGrab)
 echo  [2] Gegner labeln (Semi-Auto mit AI!)
 echo  [3] Hard Examples finden
 echo  [4] Dataset vorbereiten
@@ -45,26 +45,23 @@ goto MENU
 :SCREENSHOT
 cls
 echo ====================================================================
-echo        SCREENSHOTS - DXCam (OBS-Qualitaet!)
+echo        SCREENSHOTS - PIL ImageGrab (Windows-Methode)
 echo ====================================================================
 echo.
-echo Nutzt Windows Graphics Capture API - wie OBS!
+echo Nutzt die GLEICHE Methode wie Windows-Screenshots!
 echo.
 echo Vorteile:
-echo  + Perfekte Farbgenauigkeit
-echo  + Keine Ueberbelichtung
-echo  + Ultra-schnell (GPU-basiert)
-echo  + Funktioniert mit Fullscreen
+echo  + Funktioniert wenn normale Screenshots OK sind
+echo  + Keine Color-Space Probleme
+echo  + Kein Ueberbelichtungs-Problem
+echo  + Einfach und zuverlaessig
 echo.
-echo WICHTIG: Installiere erst DXCam:
-echo   pip install dxcam
-echo.
-echo TIPP: Deaktiviere Windows Auto-HDR:
+echo WICHTIG: Stelle sicher dass Windows Auto-HDR AUS ist:
 echo   Windows Einstellungen - System - Bildschirm - Auto-HDR AUS
 echo.
 pause
 cd 1_data_collection
-python capture_auto_dxcam.py
+python capture_auto.py
 cd ..
 pause
 goto MENU
@@ -78,11 +75,11 @@ echo.
 echo Model macht automatische Predictions!
 echo.
 echo Features:
-echo  • Rechtsklick um falsche Boxen zu loeschen
-echo  • TAB + B/H/L um Klasse zu aendern
-echo  • 1-6 fuer direkte Klassenwahl
-echo  • A zum Akzeptieren, S zum Speichern
-echo  • Professionelle Sidebar mit Statistiken
+echo  ? Rechtsklick um falsche Boxen zu loeschen
+echo  ? TAB + B/H/L um Klasse zu aendern
+echo  ? 1-6 fuer direkte Klassenwahl
+echo  ? A zum Akzeptieren, S zum Speichern
+echo  ? Professionelle Sidebar mit Statistiken
 echo.
 echo 5x SCHNELLER als manuelles Labeln!
 echo Wird mit der Zeit automatisch besser!
