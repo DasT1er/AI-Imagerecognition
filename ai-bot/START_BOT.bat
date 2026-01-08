@@ -22,7 +22,7 @@ echo   [3] Bot testen (Basic - nur Imitation)
 echo.
 echo === PHASE 2: Reinforcement Learning (NEU!) ===
 echo   [4] PPO Training (Hybrid - von DIR lernen + selbst verbessern!)
-echo   [5] ADVANCED Bot (mit AIMBOT + VISUAL OVERLAY!)
+echo   [5] ADVANCED Bot (VOLLAUTOMATISCH - macht ALLES selbst!)
 echo.
 echo === Tests und Tools ===
 echo   [6] Game State Detector testen
@@ -30,7 +30,6 @@ echo   [7] Visual Overlay testen
 echo   [8] Reward System testen
 echo.
 echo   [R] README anzeigen (Architektur)
-echo   [9] Zurueck zum Hauptmenue
 echo   [0] Beenden
 echo.
 
@@ -45,7 +44,6 @@ if "%choice%"=="6" goto GAMESTATE
 if "%choice%"=="7" goto TEST_OVERLAY
 if "%choice%"=="8" goto TEST_REWARD
 if /I "%choice%"=="R" goto README
-if "%choice%"=="9" goto MAINMENU
 if "%choice%"=="0" goto END
 
 echo.
@@ -157,12 +155,12 @@ cls
 color 0C
 echo.
 echo ================================================================
-echo   ADVANCED BOT - MIT AIMBOT + VISUAL OVERLAY!
+echo   ADVANCED BOT - VOLLAUTOMATISCH!
 echo ================================================================
 echo.
 echo FEATURES:
 echo   * PPO oder Imitation Model
-echo   * AIMBOT IMMER AKTIV (perfektes Zielen!)
+echo   * BOT MACHT ALLES SELBST (Bewegung + Zielen + Schießen!)
 echo   * VISUAL OVERLAY (siehst was Bot sieht!)
 echo   * Gegner-Boxen (Gelb = Kopf, Rot = Body)
 echo   * Game State HUD (HP, Armor, Ammo, Money)
@@ -170,6 +168,7 @@ echo   * Threat Level Bar
 echo   * Action Display
 echo   * FPS Counter
 echo.
+echo BOT LERNT ZIELEN SELBST - KEINE AIMBOT-HILFE!
 echo DU SIEHST GENAU WAS DER BOT MACHT!
 echo.
 pause
@@ -243,12 +242,6 @@ type README.md
 echo.
 pause
 goto MENU
-
-:MAINMENU
-cd ..
-cd cs2-aimbot-ml
-call START.bat
-exit
 
 :END
 cls

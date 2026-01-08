@@ -1,18 +1,18 @@
 """
-Advanced CS2 Bot with Aimbot + Visual Overlay
-==============================================
-PHASE 2 BOT - Mit allen Features!
+Advanced CS2 Bot - FULLY AUTONOMOUS AI
+=======================================
+PHASE 2 BOT - Komplett autonom!
 
 Features:
 - PPO oder Imitation Learning Model
-- AIMBOT IMMER AKTIV (perfektes Zielen!)
+- VOLLAUTOMATISCH (lernt Bewegung UND Zielen!)
 - VISUAL OVERLAY (siehst was Bot sieht!)
 - Gegner-Boxen
 - Game State HUD
 - Action Display
 - Threat Level
 
-Du siehst GENAU was der Bot macht!
+Bot macht ALLES selbst - lernt aus seinen Aktionen!
 """
 
 import torch
@@ -37,9 +37,9 @@ from utils.visual_overlay import VisualOverlay
 
 class AdvancedCS2Bot:
     """
-    Advanced CS2 Bot with:
+    Advanced CS2 Bot - FULLY AUTONOMOUS:
     - AI Model (PPO or Imitation)
-    - Integrated Aimbot (ALWAYS ON)
+    - Learns Movement AND Aiming (no aimbot assist!)
     - Visual Overlay (see what bot sees)
     """
 
@@ -48,7 +48,7 @@ class AdvancedCS2Bot:
         model_path,
         my_team='CT',
         screen_size=(84, 84),
-        use_aimbot=True,
+        use_aimbot=False,
         show_overlay=True,
         device=None
     ):
@@ -59,7 +59,7 @@ class AdvancedCS2Bot:
             model_path: Path to model (.pt or .zip)
             my_team: 'CT' or 'T'
             screen_size: Image size for model
-            use_aimbot: Use aimbot for shooting (HIGHLY RECOMMENDED!)
+            use_aimbot: Use aimbot for shooting (False = bot learns aiming itself!)
             show_overlay: Show visual overlay
             device: 'cuda' or 'cpu'
         """
@@ -75,11 +75,11 @@ class AdvancedCS2Bot:
             self.device = torch.device(device)
 
         print("\n" + "="*60)
-        print("  ADVANCED CS2 BOT - Phase 2")
+        print("  ADVANCED CS2 BOT - FULLY AUTONOMOUS")
         print("="*60 + "\n")
         print(f"   Team: {my_team}")
         print(f"   Device: {self.device}")
-        print(f"   Aimbot: {'ON ✓' if use_aimbot else 'OFF'}")
+        print(f"   Mode: VOLLAUTOMATISCH (Bot lernt Zielen selbst!)")
         print(f"   Visual Overlay: {'ON ✓' if show_overlay else 'OFF'}")
         print(f"   Model: {model_path}\n")
 
@@ -237,20 +237,11 @@ class AdvancedCS2Bot:
         elif action == 11:
             self.keyboard_ctrl.move(walk=True)
 
-        # SHOOT with AIMBOT (most important!)
+        # SHOOT (Bot decides when and where to shoot - NO aimbot assist!)
         elif action == 12:
-            if self.use_aimbot and len(detections) > 0:
-                # AIMBOT: Aim at closest enemy (prioritize heads!)
-                closest = self.enemy_detector.get_closest_enemy(detections)
-
-                if closest:
-                    target_pos = closest['center']
-                    self.mouse_ctrl.aim_at_target(target_pos, smooth=True)
-                    self.current_target = target_pos  # For overlay
-                else:
-                    self.current_target = None
-            else:
-                self.current_target = None
+            # Bot learned from YOUR gameplay how to aim!
+            # NO automatic targeting - bot controls mouse through learned behavior
+            self.current_target = None
 
             # Shoot
             self.mouse_ctrl.shoot()
@@ -313,11 +304,11 @@ class AdvancedCS2Bot:
             fps: Actions per second
         """
         print("\n" + "="*60)
-        print("  ADVANCED BOT ACTIVE")
+        print("  ADVANCED BOT ACTIVE - VOLLAUTOMATISCH")
         print("="*60 + "\n")
         print("Instructions:")
         print("  1. Starte CS2 (Offline Bots)")
-        print("  2. Bot spielt mit AIMBOT!")
+        print("  2. Bot macht ALLES selbst (Bewegung + Zielen + Schießen)!")
         print("  3. Sieh Visual Overlay für Bot-Vision")
         print("  4. Druecke F9 zum Stoppen\n")
         print("Starte in 3 Sekunden...\n")
@@ -454,7 +445,7 @@ class AdvancedCS2Bot:
 if __name__ == "__main__":
     """Test advanced bot"""
     print("\n" + "="*60)
-    print("  ADVANCED CS2 BOT - WITH AIMBOT + VISUALS")
+    print("  ADVANCED CS2 BOT - VOLLAUTOMATISCH")
     print("="*60 + "\n")
 
     # Check for models
@@ -497,20 +488,16 @@ if __name__ == "__main__":
 
     print(f"\n✅ Team: {my_team}\n")
 
-    # Aimbot option
-    use_aimbot = input("Aimbot aktivieren? (y/n) [EMPFOHLEN]: ").strip().lower()
-    use_aimbot = use_aimbot != 'n'  # Default yes
-
-    # Visual overlay option
+    # Visual overlay option (always recommended!)
     show_overlay = input("Visual Overlay zeigen? (y/n) [EMPFOHLEN]: ").strip().lower()
     show_overlay = show_overlay != 'n'  # Default yes
 
-    # Create bot
+    # Create bot (FULLY AUTONOMOUS - no aimbot assist!)
     bot = AdvancedCS2Bot(
         model_path=model_path,
         my_team=my_team,
         screen_size=(84, 84),
-        use_aimbot=use_aimbot,
+        use_aimbot=False,  # Bot learns aiming itself!
         show_overlay=show_overlay
     )
 

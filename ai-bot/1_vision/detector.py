@@ -6,15 +6,13 @@ Wrapper um das CS2 Detection Model.
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../cs2-aimbot-ml'))
-
 from PIL import ImageGrab
 import numpy as np
 import torch
 from ultralytics import YOLO
 
 class EnemyDetector:
-    def __init__(self, model_path="../cs2-aimbot-ml/models/cs2_target_detector_n/weights/best.pt"):
+    def __init__(self, model_path="models/yolo_best.pt"):
         """
         Enemy Detector using our trained YOLO model
 
@@ -35,7 +33,8 @@ class EnemyDetector:
         """Load YOLO model"""
         if not os.path.exists(self.model_path):
             print(f"❌ Model nicht gefunden: {self.model_path}")
-            print(f"Trainiere erst ein Model mit dem CS2-Aimbot-ML Tool!")
+            print(f"HINWEIS: Bot funktioniert auch OHNE YOLO (nur weniger gut bei Zielen)")
+            print(f"Falls du ein YOLO Model hast, lege es nach: {self.model_path}")
             return False
 
         print(f"Loading model from: {self.model_path}")
