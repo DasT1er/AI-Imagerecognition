@@ -1,9 +1,12 @@
 """Reinforcement Learning (PPO) modules - Phase 2"""
 
-# To be implemented in Phase 2
-# Will include:
-# - PPO agent
-# - Reward shaping
-# - Self-play training
+from .reward_shaper import RewardShaper, RewardWeights
+from .train_ppo_hybrid import HybridPPOTrainer, ImitationFeatureExtractor, RewardShapingWrapper
 
-__all__ = []
+__all__ = [
+    'RewardShaper',
+    'RewardWeights',
+    'HybridPPOTrainer',
+    'ImitationFeatureExtractor',
+    'RewardShapingWrapper'
+]
