@@ -82,6 +82,7 @@ class SemiAutoLabeler:
         self.sidebar_width = 350
         self.auto_predicted = False  # Flag für Auto-Predictions
         self.selected_box_idx = None  # Für Box-Auswahl zum Löschen
+        self.hover_box_idx = None  # Für Hover-Effekt
 
         print(f"{Fore.YELLOW}Gefundene Bilder: {Fore.WHITE}{len(all_images)}")
         print(f"{Fore.GREEN}Bereits gelabelt: {Fore.WHITE}{len(existing_labels)}")
@@ -305,6 +306,10 @@ class SemiAutoLabeler:
         if x >= param['img_width']:
             return
 
+        # Mouse Move - Hover-Effekt
+        if event == cv2.EVENT_MOUSEMOVE and not self.drawing:
+            self.hover_box_idx = self.find_box_at_point(x, y)
+
         # Rechtsklick - Box löschen
         if event == cv2.EVENT_RBUTTONDOWN:
             box_idx = self.find_box_at_point(x, y)
@@ -312,8 +317,9 @@ class SemiAutoLabeler:
                 removed_box = self.boxes.pop(box_idx)
                 class_name = self.get_class_name(removed_box[4])
                 print(f"{Fore.RED}  ✗ {class_name} Box gelöscht (Rechtsklick)")
+                print(f"{Fore.CYAN}  → Klicke auf Box und Rechtsklick zum Loeschen!")
             else:
-                print(f"{Fore.YELLOW}  ⚠ Keine Box unter Cursor")
+                print(f"{Fore.YELLOW}  ⚠ Keine Box unter Cursor - klicke DIREKT auf eine Box!")
 
         # Linksklick - Box zeichnen
         elif event == cv2.EVENT_LBUTTONDOWN:
@@ -423,22 +429,36 @@ class SemiAutoLabeler:
                 display = img.copy()
 
                 # Zeichne Boxen
-                for box in self.boxes:
+                for idx, box in enumerate(self.boxes):
                     x1, y1, x2, y2, cid = box
                     color = self.get_class_color(cid)
 
+                    # Hover-Effekt - Box wird rot wenn Cursor drüber ist
+                    is_hover = (idx == self.hover_box_idx)
+                    hover_color = (0, 0, 255) if is_hover else color  # Rot wenn hover
+                    hover_thickness = 4 if is_hover else 2
+
                     # Team border
                     border = self.COLOR_CT if cid < 3 else self.COLOR_T
+                    if is_hover:
+                        # Rote Highlight-Box wenn Cursor drüber
+                        cv2.rectangle(display, (x1-4, y1-4), (x2+4, y2+4), (0, 0, 255), 3)
                     cv2.rectangle(display, (x1-2, y1-2), (x2+2, y2+2), border, 2)
-                    cv2.rectangle(display, (x1, y1), (x2, y2), color, 2)
+                    cv2.rectangle(display, (x1, y1), (x2, y2), hover_color, hover_thickness)
 
                     label = self.get_class_name(cid)
-                    cv2.putText(display, label, (x1, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, border, 2)
+                    label_color = (0, 0, 255) if is_hover else border
+                    cv2.putText(display, label, (x1, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, label_color, 2)
+
+                    # Hover-Text
+                    if is_hover:
+                        cv2.putText(display, "RECHTSKLICK = LOESCHEN", (x1, y2+20),
+                                   cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 255), 2)
 
                     # Zentrum markieren
                     cx = (x1 + x2) // 2
                     cy = (y1 + y2) // 2
-                    cv2.drawMarker(display, (cx, cy), color, cv2.MARKER_CROSS, 15, 2)
+                    cv2.drawMarker(display, (cx, cy), hover_color, cv2.MARKER_CROSS, 15, 2)
 
                 # Current box
                 if self.current_box:
