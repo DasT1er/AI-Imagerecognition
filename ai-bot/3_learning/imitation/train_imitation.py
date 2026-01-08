@@ -207,8 +207,10 @@ class ImitationNetwork(nn.Module):
             nn.Flatten()
         )
 
-        # Calculate CNN output size
-        cnn_output_size = 7 * 7 * 64
+        # Calculate CNN output size DYNAMICALLY
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 3, screen_size[0], screen_size[1])
+            cnn_output_size = self.cnn(dummy_input).shape[1]
 
         # Fully connected layers
         self.fc = nn.Sequential(
