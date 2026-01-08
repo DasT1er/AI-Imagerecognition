@@ -296,21 +296,23 @@ class ImitationTrainer:
         print(f"   Train Samples: {len(self.train_dataset)}")
         print(f"   Val Samples: {len(self.val_dataset)}\n")
 
-        # DataLoaders
+        # DataLoaders (optimized for RTX 3080 Ti)
         self.train_loader = DataLoader(
             self.train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=4,
-            pin_memory=True
+            num_workers=8,  # 2x more for faster data loading
+            pin_memory=True,
+            persistent_workers=True  # Keep workers alive between epochs
         )
 
         self.val_loader = DataLoader(
             self.val_dataset,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=4,
-            pin_memory=True
+            num_workers=8,
+            pin_memory=True,
+            persistent_workers=True
         )
 
         # Model
@@ -321,6 +323,10 @@ class ImitationTrainer:
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
 
+        # Mixed Precision Training (2x faster on RTX 3080 Ti!)
+        self.use_amp = torch.cuda.is_available()
+        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
+
         # Training history
         self.train_losses = []
         self.val_losses = []
@@ -328,6 +334,9 @@ class ImitationTrainer:
 
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
+
+        if self.use_amp:
+            print("✅ Mixed Precision Training (AMP) enabled - 2x faster!")
 
     def train(self, num_epochs=50):
         """
@@ -388,17 +397,27 @@ class ImitationTrainer:
 
         pbar = tqdm(self.train_loader, desc="Training", leave=False)
         for images, actions in pbar:
-            images = images.to(self.device)
-            actions = actions.to(self.device)
+            images = images.to(self.device, non_blocking=True)
+            actions = actions.to(self.device, non_blocking=True)
 
-            # Forward pass
-            logits = self.model(images)
-            loss = self.criterion(logits, actions)
-
-            # Backward pass
             self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+
+            # Mixed Precision Forward pass
+            if self.use_amp:
+                with torch.cuda.amp.autocast():
+                    logits = self.model(images)
+                    loss = self.criterion(logits, actions)
+
+                # Scaled Backward pass
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                # Regular forward/backward
+                logits = self.model(images)
+                loss = self.criterion(logits, actions)
+                loss.backward()
+                self.optimizer.step()
 
             # Metrics
             total_loss += loss.item() * images.size(0)
@@ -495,11 +514,38 @@ if __name__ == "__main__":
     print("  2. Dann dieses Script starten")
     print("  3. Model trainiert auf DEINEN Actions!\n")
 
+    # Auto-detect optimal batch size based on GPU
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+
+        print(f"🎮 GPU detected: {gpu_name}")
+        print(f"   VRAM: {vram_gb:.1f} GB\n")
+
+        # Optimal batch size based on VRAM
+        if vram_gb >= 10:  # RTX 3080 Ti, 3090, 4080, etc.
+            batch_size = 128
+            print("✅ Using LARGE batch size (128) for high-end GPU!")
+        elif vram_gb >= 8:  # RTX 3070, 4070, etc.
+            batch_size = 96
+            print("✅ Using MEDIUM batch size (96)")
+        elif vram_gb >= 6:  # RTX 3060, etc.
+            batch_size = 64
+            print("✅ Using MEDIUM batch size (64)")
+        else:
+            batch_size = 32
+            print("⚠️  Using SMALL batch size (32) for lower VRAM")
+    else:
+        batch_size = 16  # CPU mode
+        print("⚠️  No GPU detected - using CPU (slow!)")
+
+    print()
+
     # Create trainer
     trainer = ImitationTrainer(
         data_dir="../../data/human_gameplay",
         output_dir="../../models",
-        batch_size=32,
+        batch_size=batch_size,
         learning_rate=1e-4
     )
 
