@@ -15,8 +15,16 @@ Nutzt Template Matching und OCR für UI-Elemente.
 import cv2
 import numpy as np
 from PIL import Image, ImageGrab
-import pytesseract
 from dataclasses import dataclass
+
+# Try to import tesseract (optional)
+try:
+    import pytesseract
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
+    print("⚠️  Tesseract OCR nicht installiert - Game State Detection deaktiviert")
+    print("   Bot funktioniert trotzdem! (nutzt nur visuelle Infos)")
 
 @dataclass
 class GameState:
@@ -59,6 +67,9 @@ class GameStateDetector:
 
         print("🎮 Game State Detector initialized")
         print(f"   Resolution: {self.width}x{self.height}")
+
+        if not TESSERACT_AVAILABLE:
+            print("   ⚠️  OCR deaktiviert - nutzt Default-Werte")
 
     def _calculate_regions(self):
         """Calculate UI regions based on resolution"""
@@ -123,6 +134,9 @@ class GameStateDetector:
 
     def _detect_hp(self, img):
         """Detect HP from bottom left"""
+        if not TESSERACT_AVAILABLE:
+            return 100  # Default
+
         x1, y1, x2, y2 = self.regions['hp']
         roi = img[y1:y2, x1:x2]
 
@@ -141,6 +155,9 @@ class GameStateDetector:
 
     def _detect_armor(self, img):
         """Detect armor from bottom left"""
+        if not TESSERACT_AVAILABLE:
+            return 0  # Default
+
         x1, y1, x2, y2 = self.regions['armor']
         roi = img[y1:y2, x1:x2]
 
@@ -159,6 +176,9 @@ class GameStateDetector:
 
     def _detect_ammo(self, img):
         """Detect ammo from bottom right"""
+        if not TESSERACT_AVAILABLE:
+            return 30, 90  # Default
+
         x1, y1, x2, y2 = self.regions['ammo']
         roi = img[y1:y2, x1:x2]
 
@@ -183,6 +203,9 @@ class GameStateDetector:
 
     def _detect_money(self, img):
         """Detect money from top center"""
+        if not TESSERACT_AVAILABLE:
+            return 800  # Default starting money
+
         x1, y1, x2, y2 = self.regions['money']
         roi = img[y1:y2, x1:x2]
 
@@ -203,6 +226,9 @@ class GameStateDetector:
 
     def _detect_time(self, img):
         """Detect round time from top center"""
+        if not TESSERACT_AVAILABLE:
+            return 115.0  # Default round time
+
         x1, y1, x2, y2 = self.regions['time']
         roi = img[y1:y2, x1:x2]
 
