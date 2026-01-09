@@ -17,14 +17,21 @@ import numpy as np
 from PIL import Image, ImageGrab
 from dataclasses import dataclass
 
-# Try to import tesseract (optional)
+# Try to import and test tesseract (optional)
 try:
     import pytesseract
-    TESSERACT_AVAILABLE = True
+    # Test if tesseract binary is actually available
+    try:
+        pytesseract.get_tesseract_version()
+        TESSERACT_AVAILABLE = True
+    except:
+        TESSERACT_AVAILABLE = False
+        print("⚠️  Tesseract Binary (.exe) nicht gefunden - OCR deaktiviert")
+        print("   Bot funktioniert trotzdem! (nutzt Default-Werte)")
 except ImportError:
     TESSERACT_AVAILABLE = False
-    print("⚠️  Tesseract OCR nicht installiert - Game State Detection deaktiviert")
-    print("   Bot funktioniert trotzdem! (nutzt nur visuelle Infos)")
+    print("⚠️  Tesseract Python-Modul nicht installiert - OCR deaktiviert")
+    print("   Bot funktioniert trotzdem! (nutzt Default-Werte)")
 
 @dataclass
 class GameState:
