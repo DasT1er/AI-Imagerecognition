@@ -18,15 +18,19 @@ from PIL import Image, ImageGrab
 import time
 import sys
 import os
-from pynput import keyboard
+from pynput import keyboard as pynput_keyboard
 
 # Add to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+base_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, '3_learning', 'imitation'))
+sys.path.append(os.path.join(base_dir, '2_actions'))
+sys.path.append(os.path.join(base_dir, '1_vision'))
 
-from learning.imitation.train_imitation import ImitationNetwork
-from actions.keyboard import KeyboardController
-from actions.mouse import MouseController
-from vision.detector import EnemyDetector
+from train_imitation import ImitationNetwork
+from keyboard import KeyboardController
+from mouse import MouseController
+from detector import EnemyDetector
 
 
 class CS2Bot:
@@ -271,7 +275,7 @@ class CS2Bot:
         self.frame_count = 0
 
         # Start keyboard listener
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
+        self.keyboard_listener = pynput_keyboard.Listener(on_press=self.on_key_press)
         self.keyboard_listener.start()
 
         frame_time = 1.0 / fps
