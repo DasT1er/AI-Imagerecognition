@@ -474,12 +474,13 @@ if __name__ == "__main__":
     print("  ADVANCED CS2 BOT - VOLLAUTOMATISCH")
     print("="*60 + "\n")
 
-    # Get absolute paths to models (ai-bot/models/)
+    # Get absolute paths to models (parent_dir/models/)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    ppo_path = os.path.join(script_dir, 'models', 'ppo_final.zip')
-    imitation_path = os.path.join(script_dir, 'models', 'best_model.pt')
+    parent_dir = os.path.dirname(script_dir)  # Go one level up from ai-bot/
+    ppo_path = os.path.join(parent_dir, 'models', 'ppo_final.zip')
+    imitation_path = os.path.join(parent_dir, 'models', 'best_model.pt')
 
-    print(f"📂 Model directory: {os.path.join(script_dir, 'models')}\n")
+    print(f"📂 Model directory: {os.path.join(parent_dir, 'models')}\n")
     print("Available models:")
     if os.path.exists(ppo_path):
         print(f"  [1] PPO Model (Phase 2): {ppo_path} ✓")
