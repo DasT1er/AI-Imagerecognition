@@ -351,9 +351,10 @@ if __name__ == "__main__":
     print("  CS2 BOT - IMITATION LEARNING")
     print("="*60 + "\n")
 
-    # Get absolute path to model (script_dir/models/)
+    # Get absolute path to model (one level up: ai/models/)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, 'models', 'best_model.pt')
+    ai_dir = os.path.dirname(script_dir)  # ai-bot/ -> ai/
+    model_path = os.path.join(ai_dir, 'models', 'best_model.pt')
 
     print(f"📂 Looking for model: {model_path}\n")
 

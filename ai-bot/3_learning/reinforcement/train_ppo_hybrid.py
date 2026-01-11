@@ -268,7 +268,8 @@ class HybridPPOTrainer:
         self,
         total_timesteps: int = 1000000,
         save_freq: int = 10000,
-        save_path: str = "../../models/ppo_checkpoints"
+        save_path: str = "../../models/ppo_checkpoints",
+        final_model_path: str = None
     ):
         """
         Train PPO agent
@@ -277,6 +278,7 @@ class HybridPPOTrainer:
             total_timesteps: Total training steps
             save_freq: Save checkpoint every N steps
             save_path: Where to save checkpoints
+            final_model_path: Where to save final model (default: save_path/../ppo_final.zip)
         """
         print(f"🚀 Starting PPO training for {total_timesteps:,} steps...\n")
 
@@ -299,7 +301,12 @@ class HybridPPOTrainer:
         print("\n✅ Training complete!")
 
         # Save final model
-        final_path = "../../models/ppo_final.zip"
+        if final_model_path is None:
+            # Default: one level up from save_path
+            final_path = os.path.join(os.path.dirname(save_path), 'ppo_final.zip')
+        else:
+            final_path = final_model_path
+
         self.model.save(final_path)
         print(f"💾 Final model saved: {final_path}\n")
 
@@ -364,8 +371,10 @@ if __name__ == "__main__":
     env = make_env(my_team=my_team)
     env = DummyVecEnv([lambda: env])
 
-    # Check for imitation model
-    imitation_path = "../../models/best_model.pt"
+    # Check for imitation model (3 levels up: 3_learning/reinforcement/ -> ai/)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ai_dir = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
+    imitation_path = os.path.join(ai_dir, 'models', 'best_model.pt')
 
     if os.path.exists(imitation_path):
         print(f"✅ Found imitation model: {imitation_path}")
@@ -397,14 +406,19 @@ if __name__ == "__main__":
 
     input("Druecke Enter wenn CS2 bereit ist...")
 
+    # Set save path for checkpoints and final model
+    checkpoint_dir = os.path.join(ai_dir, 'models', 'ppo_checkpoints')
+
     trainer.train(
         total_timesteps=1000000,  # 1M steps ~ 10-20 hours
-        save_freq=10000
+        save_freq=10000,
+        save_path=checkpoint_dir
     )
 
     # Evaluate
     trainer.evaluate(n_episodes=10)
 
+    final_model_path = os.path.join(ai_dir, 'models', 'ppo_final.zip')
     print("\n✅ Training abgeschlossen!")
-    print("💾 Model gespeichert: models/ppo_final.zip")
+    print(f"💾 Model gespeichert: {final_model_path}")
     print("\nNächster Schritt: test_bot.py zum Testen!")

@@ -12,13 +12,19 @@ import torch
 from ultralytics import YOLO
 
 class EnemyDetector:
-    def __init__(self, model_path="models/yolo_best.pt"):
+    def __init__(self, model_path=None):
         """
         Enemy Detector using our trained YOLO model
 
         Args:
-            model_path: Path to trained YOLO model
+            model_path: Path to trained YOLO model (default: ai/models/yolo_best.pt)
         """
+        # If no path provided, use default location (2 levels up from 1_vision/)
+        if model_path is None:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            ai_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
+            model_path = os.path.join(ai_dir, 'models', 'yolo_best.pt')
+
         self.model_path = model_path
         self.model = None
         self.class_names = {
