@@ -514,11 +514,11 @@ if __name__ == "__main__":
     print("  2. Dann dieses Script starten")
     print("  3. Model trainiert auf DEINEN Actions!\n")
 
-    # Get absolute paths (parent directory of ai-bot/)
+    # Get absolute paths (ai-bot directory, 2 levels up from this script)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
-    data_dir = os.path.join(parent_dir, 'data', 'human_gameplay')
-    output_dir = os.path.join(parent_dir, 'models')
+    ai_bot_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
+    data_dir = os.path.join(ai_bot_dir, 'data', 'human_gameplay')
+    output_dir = os.path.join(ai_bot_dir, 'models')
 
     print(f"📂 Directories:")
     print(f"   Data: {data_dir}")

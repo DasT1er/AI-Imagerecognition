@@ -230,10 +230,10 @@ class HumanDataCollector:
 
 
 if __name__ == "__main__":
-    # Get absolute path to data directory (parent_dir/data/human_gameplay)
+    # Get absolute path to data directory (ai-bot/data/human_gameplay, 2 levels up)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
-    output_dir = os.path.join(parent_dir, 'data', 'human_gameplay')
+    ai_bot_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
+    output_dir = os.path.join(ai_bot_dir, 'data', 'human_gameplay')
 
     print(f"\n📂 Saving data to: {output_dir}\n")
 
