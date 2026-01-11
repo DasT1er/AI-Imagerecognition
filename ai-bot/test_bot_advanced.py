@@ -84,15 +84,31 @@ class AdvancedCS2Bot:
         print(f"   Model: {model_path}\n")
 
         # Load model
-        self.model_type = self._detect_model_type(model_path)
-        self.model = self._load_model(model_path)
-
-        print(f"✅ {self.model_type} model loaded!\n")
+        try:
+            self.model_type = self._detect_model_type(model_path)
+            self.model = self._load_model(model_path)
+            print(f"✅ {self.model_type} model loaded!\n")
+        except Exception as e:
+            print(f"❌ FEHLER beim Model-Laden: {e}\n")
+            print("Das Model ist möglicherweise beschädigt!")
+            print("Bitte trainiere das Model neu:\n")
+            print("  START_BOT.bat → Option [2] - Model trainieren\n")
+            input("Drücke Enter zum Beenden...")
+            sys.exit(1)
 
         # Controllers
         self.keyboard_ctrl = KeyboardController()
         self.mouse_ctrl = MouseController()
-        self.enemy_detector = EnemyDetector(my_team=my_team)
+
+        # Enemy detector (optional)
+        try:
+            self.enemy_detector = EnemyDetector()
+            print("✅ Enemy Detector loaded (optional)")
+        except Exception as e:
+            print(f"⚠️  Enemy Detector nicht verfügbar: {e}")
+            print("   Bot funktioniert trotzdem!")
+            self.enemy_detector = None
+
         self.game_state_detector = GameStateDetector()
 
         # Visual overlay
@@ -338,14 +354,19 @@ class AdvancedCS2Bot:
                 # Detect game state
                 game_state = self.game_state_detector.detect(screenshot)
 
-                # Detect enemies
-                detections = self.enemy_detector.detect(screenshot_np, my_team=self.my_team)
+                # Detect enemies (if detector available)
+                if self.enemy_detector is not None:
+                    detections = self.enemy_detector.detect(screenshot_np, my_team=self.my_team)
+                    enemy_count = min(len(detections), 5)
+                    closest = self.enemy_detector.get_closest_enemy(detections)
+                    threat = self.enemy_detector.get_threat_level(detections) / 10.0
+                else:
+                    detections = []
+                    enemy_count = 0
+                    closest = None
+                    threat = 0.0
 
                 # Enemy info vector
-                enemy_count = min(len(detections), 5)
-                closest = self.enemy_detector.get_closest_enemy(detections)
-                threat = self.enemy_detector.get_threat_level(detections) / 10.0
-
                 if closest:
                     dist = np.linalg.norm(
                         np.array(closest['center']) - np.array([960, 540])
@@ -470,10 +491,13 @@ if __name__ == "__main__":
         model_path = imitation_path
 
     if model_path is None:
-        print("\n❌ No model found!")
-        print("Please train a model first:")
-        print("  Phase 1: python 3_learning/imitation/train_imitation.py")
-        print("  Phase 2: python 3_learning/reinforcement/train_ppo_hybrid.py\n")
+        print("\n❌ Kein Model gefunden!")
+        print("\nBitte zuerst Model trainieren:")
+        print("  1. START_BOT.bat → Option [1] - Gameplay aufnehmen")
+        print("  2. START_BOT.bat → Option [2] - Model trainieren (Phase 1)")
+        print("  3. START_BOT.bat → Option [4] - PPO Training (Phase 2, optional)")
+        print("\nFEHLER: Kein trainiertes Model vorhanden!\n")
+        input("Drücke Enter zum Beenden...")
         sys.exit(1)
 
     print(f"\n✅ Using model: {model_path}\n")

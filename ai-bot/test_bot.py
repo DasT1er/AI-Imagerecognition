@@ -59,18 +59,33 @@ class CS2Bot:
         print(f"   Model: {model_path}\n")
 
         # Load model
-        self.model = ImitationNetwork(num_actions=20, screen_size=screen_size)
-        checkpoint = torch.load(model_path, map_location=self.device)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.model.to(self.device)
-        self.model.eval()
-
-        print("✅ Model loaded successfully!\n")
+        try:
+            self.model = ImitationNetwork(num_actions=20, screen_size=screen_size)
+            checkpoint = torch.load(model_path, map_location=self.device)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.model.to(self.device)
+            self.model.eval()
+            print("✅ Model loaded successfully!\n")
+        except Exception as e:
+            print(f"❌ FEHLER beim Model-Laden: {e}\n")
+            print("Das Model ist möglicherweise beschädigt!")
+            print("Bitte trainiere das Model neu:\n")
+            print("  START_BOT.bat → Option [2] - Model trainieren\n")
+            input("Drücke Enter zum Beenden...")
+            sys.exit(1)
 
         # Controllers
         self.keyboard_ctrl = KeyboardController()
         self.mouse_ctrl = MouseController()
-        self.enemy_detector = EnemyDetector(my_team=my_team)
+
+        # Enemy detector (optional - used for visual info only)
+        try:
+            self.enemy_detector = EnemyDetector()
+            print("✅ Enemy Detector loaded (optional)\n")
+        except Exception as e:
+            print(f"⚠️  Enemy Detector nicht verfügbar: {e}")
+            print("   Bot funktioniert trotzdem!\n")
+            self.enemy_detector = None
 
         # State
         self.running = False
@@ -338,9 +353,11 @@ if __name__ == "__main__":
     if not os.path.exists(model_path):
         print(f"❌ Model nicht gefunden: {model_path}\n")
         print("Bitte zuerst Model trainieren:")
-        print("  1. collect_human_data.py - Gameplay aufnehmen")
-        print("  2. train_imitation.py - Model trainieren")
-        print("  3. test_bot.py - Bot testen\n")
+        print("  1. START_BOT.bat → Option [1] - Gameplay aufnehmen")
+        print("  2. START_BOT.bat → Option [2] - Model trainieren")
+        print("  3. START_BOT.bat → Option [3] - Bot testen\n")
+        print("FEHLER: Kein trainiertes Model vorhanden!\n")
+        input("Drücke Enter zum Beenden...")
         sys.exit(1)
 
     # Get team
