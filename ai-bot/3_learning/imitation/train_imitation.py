@@ -514,6 +514,16 @@ if __name__ == "__main__":
     print("  2. Dann dieses Script starten")
     print("  3. Model trainiert auf DEINEN Actions!\n")
 
+    # Get absolute paths (ai-bot directory)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ai_bot_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
+    data_dir = os.path.join(ai_bot_dir, 'data', 'human_gameplay')
+    output_dir = os.path.join(ai_bot_dir, 'models')
+
+    print(f"📂 Directories:")
+    print(f"   Data: {data_dir}")
+    print(f"   Output: {output_dir}\n")
+
     # Auto-detect optimal batch size based on GPU
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
@@ -543,8 +553,8 @@ if __name__ == "__main__":
 
     # Create trainer
     trainer = ImitationTrainer(
-        data_dir="../../data/human_gameplay",
-        output_dir="../../models",
+        data_dir=data_dir,
+        output_dir=output_dir,
         batch_size=batch_size,
         learning_rate=1e-4
     )

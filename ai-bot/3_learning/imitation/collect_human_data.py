@@ -230,5 +230,12 @@ class HumanDataCollector:
 
 
 if __name__ == "__main__":
-    collector = HumanDataCollector()
+    # Get absolute path to data directory (ai-bot/data/human_gameplay)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ai_bot_dir = os.path.abspath(os.path.join(script_dir, '..', '..'))
+    output_dir = os.path.join(ai_bot_dir, 'data', 'human_gameplay')
+
+    print(f"\n📂 Saving data to: {output_dir}\n")
+
+    collector = HumanDataCollector(output_dir=output_dir)
     collector.run(fps=10)

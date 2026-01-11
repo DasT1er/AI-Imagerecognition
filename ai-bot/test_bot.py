@@ -351,8 +351,11 @@ if __name__ == "__main__":
     print("  CS2 BOT - IMITATION LEARNING")
     print("="*60 + "\n")
 
-    # Check for model
-    model_path = "models/best_model.pt"
+    # Get absolute path to model (ai-bot/models/)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(script_dir, 'models', 'best_model.pt')
+
+    print(f"📂 Looking for model: {model_path}\n")
 
     if not os.path.exists(model_path):
         print(f"❌ Model nicht gefunden: {model_path}\n")
