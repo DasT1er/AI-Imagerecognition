@@ -13,6 +13,7 @@ DEFAULT_CONFIG = {
     "toggle_key": "F1",
     "panic_key": "F12",           # Kill switch - disables everything instantly
     "menu_key": "INSERT",
+    "monitor_index": 1,
 
     # --- Detection ---
     "model_path": "models/best.pt",
