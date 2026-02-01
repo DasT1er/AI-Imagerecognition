@@ -78,12 +78,39 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
     aim_engine = AimEngine(config)
     triggerbot = Triggerbot(config)
 
+    # Update target classes based on team selection
+    config.update_target_classes()
+
     gui.after(0, lambda: gui._update_status("Running", "#55ff55"))
     print("[+] Bot running")
 
     fps = 0.0
     frame_count = 0
     fps_timer = time.perf_counter()
+
+    # Store overlay data for main-thread rendering
+    overlay_data = {
+        "detections": [],
+        "capture_offset": (0, 0),
+        "screen_center": (0, 0),
+        "target": None,
+        "fps": 0.0,
+        "inference_ms": 0.0,
+        "enabled": False,
+    }
+
+    def update_overlay():
+        """Called in main thread to update the game overlay."""
+        if gui.game_overlay is not None:
+            gui.game_overlay.update(
+                detections=overlay_data["detections"],
+                capture_offset=overlay_data["capture_offset"],
+                screen_center=overlay_data["screen_center"],
+                target=overlay_data["target"],
+                fps=overlay_data["fps"],
+                inference_ms=overlay_data["inference_ms"],
+                enabled=overlay_data["enabled"],
+            )
 
     try:
         while not stop_event.is_set():
@@ -104,13 +131,14 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
                 if not config["enabled"]:
                     aim_engine.reset()
 
-            # --- Update capture settings from GUI ---
+            # --- Update from GUI settings ---
             capture.set_monitor(config.get("monitor_index", 1))
             capture.set_region_size(
                 config["detection_region_width"],
                 config["detection_region_height"],
             )
             detector.set_confidence(config["confidence_threshold"])
+            config.update_target_classes()
 
             # --- Screen capture ---
             frame = capture.grab()
@@ -164,6 +192,16 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
                 target=target,
             )
 
+            # --- Update game overlay data (rendered in main thread) ---
+            overlay_data["detections"] = detections
+            overlay_data["capture_offset"] = offset
+            overlay_data["screen_center"] = screen_center
+            overlay_data["target"] = target
+            overlay_data["fps"] = fps
+            overlay_data["inference_ms"] = detector.inference_time
+            overlay_data["enabled"] = config["enabled"]
+            gui.after(0, update_overlay)
+
             # --- FPS tracking ---
             frame_count += 1
             elapsed = time.perf_counter() - fps_timer
@@ -181,6 +219,8 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
 
     except Exception as e:
         print(f"[!] Bot error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         print("[+] Bot stopped")
 
@@ -203,12 +243,11 @@ def main():
         bot_loop(config, gui, stop_event)
 
     gui.on_start = on_start
-    gui.on_stop = lambda: None  # Stop is handled via stop_event
+    gui.on_stop = lambda: None
 
     print("[+] GUI ready")
     print()
 
-    # Run GUI main loop (blocks until window closes)
     gui.mainloop()
 
     config.save()

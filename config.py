@@ -24,9 +24,15 @@ DEFAULT_CONFIG = {
     "detection_region_height": 640,
 
     # --- Target Selection ---
-    "target_classes": [0],         # YOLO class IDs to target (0 = enemy typically)
-    "target_bone": "head",         # "head", "neck", "chest", "body"
-    "head_ratio": 0.15,            # How far from top of bbox to aim for head
+    # 4-class model: 0=t, 1=t_head, 2=ct, 3=ct_head
+    # Set which team you are on - bot will target the OTHER team
+    "my_team": "ct",               # "ct" or "t" - your team (targets enemy team)
+    "target_classes": [0, 1],      # Auto-set: ct targets [0,1] (t+t_head), t targets [2,3]
+    "head_class_ids": [1, 3],      # Which class IDs are head detections
+    "body_class_ids": [0, 2],      # Which class IDs are body detections
+    "prefer_head": True,           # If head detected, aim at head bbox center instead of body ratio
+    "target_bone": "head",         # Fallback for body bbox: "head", "neck", "chest", "body"
+    "head_ratio": 0.15,            # How far from top of body bbox for head estimate
     "neck_ratio": 0.25,
     "chest_ratio": 0.35,
     "body_ratio": 0.50,
@@ -36,17 +42,19 @@ DEFAULT_CONFIG = {
     "aim_mode": "trigger",         # "trigger" = only when shooting, "hold" = hold key, "always"
     "aim_key": None,               # None = mouse1 trigger, or specific key like "XBUTTON2"
     "fov_radius": 150,             # Pixel radius from crosshair - ignore targets outside
-    "smoothing": 0.45,             # 0.0 = instant snap, 1.0 = very slow (lower = faster)
+    "smoothing": 0.35,             # 0.0 = instant snap, 1.0 = very slow (lower = faster)
     "smoothing_curve": "bezier",   # "linear", "bezier", "ease_out", "ease_in_out"
+    "distance_scaling": True,      # Move faster when far, slower when close
     "humanize": True,
-    "humanize_jitter": 2.5,        # Random pixel offset to look human
+    "humanize_jitter": 1.5,        # Random pixel offset to look human
     "humanize_delay_min": 0.0,     # Min random delay before moving (ms)
-    "humanize_delay_max": 5.0,     # Max random delay before moving (ms)
-    "max_move_per_tick": 80,       # Max pixels to move per frame (speed cap)
+    "humanize_delay_max": 3.0,     # Max random delay before moving (ms)
+    "max_move_per_tick": 120,      # Max pixels to move per frame (speed cap)
+    "min_move_threshold": 0.5,     # Don't move if delta < this (avoids twitching)
     "flick_enabled": True,         # Allow fast flicks for close targets
-    "flick_threshold": 30,         # Below this distance -> flick
+    "flick_threshold": 25,         # Below this distance -> flick
     "prediction_enabled": True,    # Lead targets based on velocity
-    "prediction_factor": 0.3,      # How much to lead
+    "prediction_factor": 0.25,     # How much to lead
 
     # --- Recoil Control (RCS) ---
     "rcs_enabled": False,
@@ -60,7 +68,7 @@ DEFAULT_CONFIG = {
     "triggerbot_delay_max": 150,   # Max reaction time (ms)
 
     # --- Visuals / Overlay ---
-    "overlay_enabled": False,
+    "overlay_enabled": True,
     "show_fov_circle": True,
     "show_bounding_boxes": True,
     "show_snaplines": False,
@@ -68,10 +76,10 @@ DEFAULT_CONFIG = {
     "show_fps": True,
     "show_target_info": True,
     "box_color": [255, 50, 50],
+    "head_box_color": [255, 0, 255],
     "fov_color": [255, 255, 255],
     "crosshair_color": [0, 255, 0],
     "snapline_color": [255, 255, 0],
-    "overlay_opacity": 0.85,
 
     # --- Performance ---
     "fps_limit": 0,               # 0 = unlimited
@@ -101,6 +109,13 @@ class Config:
 
     def items(self):
         return self._data.items()
+
+    def update_target_classes(self):
+        """Set target_classes based on my_team selection."""
+        if self._data["my_team"] == "ct":
+            self._data["target_classes"] = [0, 1]
+        else:
+            self._data["target_classes"] = [2, 3]
 
     def save(self):
         try:
