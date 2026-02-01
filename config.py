@@ -60,7 +60,7 @@ DEFAULT_CONFIG = {
     "triggerbot_delay_max": 150,   # Max reaction time (ms)
 
     # --- Visuals / Overlay ---
-    "overlay_enabled": True,
+    "overlay_enabled": False,
     "show_fov_circle": True,
     "show_bounding_boxes": True,
     "show_snaplines": False,

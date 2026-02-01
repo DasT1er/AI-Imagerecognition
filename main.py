@@ -78,18 +78,6 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
     aim_engine = AimEngine(config)
     triggerbot = Triggerbot(config)
 
-    # Optional: in-game overlay
-    overlay = None
-    if config["overlay_enabled"]:
-        try:
-            from core.overlay import Overlay
-            overlay = Overlay(config)
-            overlay.init()
-            print("[+] In-game overlay initialized")
-        except Exception as e:
-            print(f"[!] Overlay failed (non-critical): {e}")
-            overlay = None
-
     gui.after(0, lambda: gui._update_status("Running", "#55ff55"))
     print("[+] Bot running")
 
@@ -176,22 +164,6 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
                 target=target,
             )
 
-            # --- In-game overlay ---
-            if overlay is not None and config["overlay_enabled"]:
-                try:
-                    overlay.process_events()
-                    overlay.render(
-                        detections=detections,
-                        capture_offset=offset,
-                        screen_center=screen_center,
-                        target=target,
-                        fps=fps,
-                        inference_ms=detector.inference_time,
-                        enabled=config["enabled"],
-                    )
-                except Exception:
-                    pass
-
             # --- FPS tracking ---
             frame_count += 1
             elapsed = time.perf_counter() - fps_timer
@@ -210,11 +182,6 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
     except Exception as e:
         print(f"[!] Bot error: {e}")
     finally:
-        if overlay is not None:
-            try:
-                overlay.destroy()
-            except Exception:
-                pass
         print("[+] Bot stopped")
 
 

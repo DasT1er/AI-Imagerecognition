@@ -312,8 +312,8 @@ class AimbotGUI(ctk.CTk):
     def _build_tab_visuals(self):
         tab = self.tabview.add("Visuals")
 
-        self.overlay_var = ctk.BooleanVar(value=self.config["overlay_enabled"])
-        ctk.CTkSwitch(tab, text="Overlay Enabled",
+        self.overlay_var = ctk.BooleanVar(value=self.config["show_bounding_boxes"])
+        ctk.CTkSwitch(tab, text="Preview Overlays",
                        variable=self.overlay_var,
                        command=lambda: self._set("overlay_enabled", self.overlay_var.get()),
                        ).pack(anchor="w", padx=15, pady=(10, 3))
