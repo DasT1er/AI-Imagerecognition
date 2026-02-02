@@ -1,8 +1,9 @@
 """
 Transparent in-game overlay using tkinter.
 Draws FOV circle, bounding boxes, crosshair, target info directly on screen.
-No pygame - runs as a tkinter Toplevel from the main thread.
+Uses Win32 API for proper click-through transparency on Windows.
 """
+import sys
 import tkinter as tk
 from typing import List, Tuple, Optional
 
@@ -10,7 +11,8 @@ from typing import List, Tuple, Optional
 class GameOverlay:
     """Transparent fullscreen overlay using tkinter Canvas."""
 
-    TRANSPARENT_COLOR = "#000001"  # Color key for transparency
+    # Use a distinct color that won't appear in normal drawings
+    TRANSPARENT_COLOR = "#010101"
 
     def __init__(self, root: tk.Tk, config):
         self.config = config
@@ -20,79 +22,118 @@ class GameOverlay:
         self._visible = False
         self._screen_w = 0
         self._screen_h = 0
-        self._items = []  # Track canvas item IDs for clearing
+        self._click_through = False
 
     def create(self):
         """Create the transparent overlay window."""
-        import sys
+        if sys.platform != "win32":
+            print("[!] Game overlay not supported on this platform (no click-through)")
+            return
 
         self._screen_w = self.root.winfo_screenwidth()
         self._screen_h = self.root.winfo_screenheight()
 
         self.window = tk.Toplevel(self.root)
-        self.window.title("overlay")
+        self.window.title("_overlay_")
         self.window.geometry(f"{self._screen_w}x{self._screen_h}+0+0")
-        self.window.overrideredirect(True)         # No window frame
-        self.window.attributes("-topmost", True)    # Always on top
+        self.window.overrideredirect(True)
+        self.window.attributes("-topmost", True)
 
-        if sys.platform == "win32":
-            self.window.attributes("-transparentcolor", self.TRANSPARENT_COLOR)
-            self.window.config(bg=self.TRANSPARENT_COLOR)
+        # Set transparent color BEFORE creating canvas
+        self.window.attributes("-transparentcolor", self.TRANSPARENT_COLOR)
+        self.window.config(bg=self.TRANSPARENT_COLOR)
 
-            # Ensure window is fully mapped before setting extended styles
-            self.window.update_idletasks()
-            self.window.update()
-
-            # Make click-through on Windows
-            try:
-                import ctypes
-                from ctypes import wintypes
-
-                user32 = ctypes.windll.user32
-                GWL_EXSTYLE = -20
-                WS_EX_LAYERED = 0x00080000
-                WS_EX_TRANSPARENT = 0x00000020
-                WS_EX_TOOLWINDOW = 0x00000080
-
-                # Use winfo_id() for reliable HWND retrieval
-                hwnd = self.window.winfo_id()
-
-                style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-                style |= WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW
-                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
-
-                # Force Windows to re-read the style
-                user32.SetWindowPos(
-                    hwnd, -1,  # HWND_TOPMOST
-                    0, 0, self._screen_w, self._screen_h,
-                    0x0020 | 0x0002  # SWP_FRAMECHANGED | SWP_NOMOVE (reapply styles)
-                )
-                self._click_through = True
-            except Exception as e:
-                print(f"[!] Overlay click-through failed: {e}")
-                print("[!] Overlay disabled to prevent mouse blocking")
-                self._click_through = False
-                self.window.destroy()
-                self.window = None
-                self._visible = False
-                return
-        else:
-            # Linux/macOS - tkinter overlays block input, skip overlay entirely
-            print("[!] Game overlay not supported on this platform (no click-through)")
-            self.window.destroy()
-            self.window = None
-            self._visible = False
-            return
-
+        # Create canvas with same transparent background
         self.canvas = tk.Canvas(
             self.window,
             width=self._screen_w,
             height=self._screen_h,
             bg=self.TRANSPARENT_COLOR,
             highlightthickness=0,
+            bd=0,
+            relief="flat",
         )
-        self.canvas.pack()
+        self.canvas.pack(fill="both", expand=True)
+
+        # Force the window to fully render before touching Win32 styles
+        self.window.update_idletasks()
+        self.window.update()
+
+        # Now apply click-through using Win32 API
+        try:
+            self._apply_click_through()
+        except Exception as e:
+            print(f"[!] Overlay click-through failed: {e}")
+            import traceback
+            traceback.print_exc()
+            print("[!] Overlay disabled to prevent mouse blocking")
+            self.window.destroy()
+            self.window = None
+            self.canvas = None
+            self._visible = False
+            return
+
         self._visible = True
+        print("[+] Game overlay created successfully (click-through enabled)")
+
+    def _apply_click_through(self):
+        """Set Win32 extended window styles for click-through transparency."""
+        import ctypes
+        import ctypes.wintypes
+
+        user32 = ctypes.windll.user32
+
+        GWL_EXSTYLE = -20
+        WS_EX_LAYERED = 0x00080000
+        WS_EX_TRANSPARENT = 0x00000020
+        WS_EX_TOOLWINDOW = 0x00000080
+        WS_EX_NOACTIVATE = 0x08000000
+
+        GA_ROOT = 2
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_FRAMECHANGED = 0x0020
+        SWP_NOACTIVATE = 0x0010
+        HWND_TOPMOST = -1
+
+        # Get the actual top-level HWND (not the child widget)
+        child_hwnd = self.window.winfo_id()
+
+        # GetAncestor(GA_ROOT) walks up to the real top-level window
+        user32.GetAncestor.restype = ctypes.wintypes.HWND
+        user32.GetAncestor.argtypes = [ctypes.wintypes.HWND, ctypes.c_uint]
+        top_hwnd = user32.GetAncestor(child_hwnd, GA_ROOT)
+
+        if not top_hwnd:
+            # Fallback: try parsing tkinter frame()
+            try:
+                top_hwnd = int(self.window.frame(), 16)
+            except Exception:
+                top_hwnd = child_hwnd
+
+        print(f"    child_hwnd=0x{child_hwnd:08x}, top_hwnd=0x{top_hwnd:08x}")
+
+        # Set extended styles on the TOP-LEVEL window
+        # This is where -transparentcolor already set WS_EX_LAYERED
+        style = user32.GetWindowLongW(top_hwnd, GWL_EXSTYLE)
+        new_style = style | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
+        user32.SetWindowLongW(top_hwnd, GWL_EXSTYLE, new_style)
+
+        # Verify style was set
+        verify = user32.GetWindowLongW(top_hwnd, GWL_EXSTYLE)
+        if not (verify & WS_EX_TRANSPARENT):
+            raise RuntimeError(f"Failed to set WS_EX_TRANSPARENT (style=0x{verify:08x})")
+
+        # Ask Windows to reapply without moving or resizing
+        user32.SetWindowPos(
+            top_hwnd,
+            HWND_TOPMOST,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE
+        )
+
+        self._click_through = True
+        print(f"    Extended style: 0x{verify:08x} (click-through OK)")
 
     def update(self, detections: list, capture_offset: Tuple[int, int],
                screen_center: Tuple[int, int], target=None,
@@ -113,6 +154,7 @@ class GameOverlay:
             return
 
         cx, cy = screen_center
+        head_ids = set(cfg.get("head_class_ids", [1, 3]))
 
         # FOV circle
         if cfg["show_fov_circle"]:
@@ -126,22 +168,26 @@ class GameOverlay:
         # Bounding boxes
         if cfg["show_bounding_boxes"]:
             box_color = self._rgb_to_hex(cfg["box_color"])
+            head_color = self._rgb_to_hex(cfg.get("head_box_color", [255, 0, 255]))
             for det in detections:
                 sx1 = int(det.x1 + capture_offset[0])
                 sy1 = int(det.y1 + capture_offset[1])
                 sx2 = int(det.x2 + capture_offset[0])
                 sy2 = int(det.y2 + capture_offset[1])
-                w = sx2 - sx1
-                h = sy2 - sy1
+
+                is_head = det.class_id in head_ids
+                color = head_color if is_head else box_color
 
                 # Corner-style box
+                w = sx2 - sx1
+                h = sy2 - sy1
                 cl = max(8, min(w, h) // 4)
-                self._draw_corner_box(sx1, sy1, sx2, sy2, cl, box_color)
+                self._draw_corner_box(sx1, sy1, sx2, sy2, cl, color)
 
                 # Confidence label
                 label = f"{det.confidence:.0%} {det.class_name}"
                 self.canvas.create_text(
-                    sx1, sy1 - 8, text=label, fill=box_color,
+                    sx1, sy1 - 8, text=label, fill=color,
                     font=("Consolas", 10), anchor="w"
                 )
 
@@ -177,7 +223,6 @@ class GameOverlay:
                 tx - 5, ty - 5, tx + 5, ty + 5,
                 outline="#ff0000", width=2
             )
-            # Small cross on aim point
             self.canvas.create_line(tx - 7, ty, tx + 7, ty,
                                      fill="#ffff00", width=1)
             self.canvas.create_line(tx, ty - 7, tx, ty + 7,
@@ -234,8 +279,8 @@ class GameOverlay:
     def _rgb_to_hex(rgb_list) -> str:
         """Convert [r, g, b] to #rrggbb hex color."""
         r, g, b = int(rgb_list[0]), int(rgb_list[1]), int(rgb_list[2])
-        # Avoid exact transparent color
-        if r == 0 and g == 0 and b <= 1:
+        # Avoid exact transparent color (#010101)
+        if r <= 1 and g <= 1 and b <= 1:
             b = 2
         return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -259,4 +304,5 @@ class GameOverlay:
         if self.window:
             self.window.destroy()
             self.window = None
+            self.canvas = None
             self._visible = False
