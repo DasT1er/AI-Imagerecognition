@@ -24,6 +24,8 @@ class GameOverlay:
 
     def create(self):
         """Create the transparent overlay window."""
+        import sys
+
         self._screen_w = self.root.winfo_screenwidth()
         self._screen_h = self.root.winfo_screenheight()
 
@@ -32,19 +34,55 @@ class GameOverlay:
         self.window.geometry(f"{self._screen_w}x{self._screen_h}+0+0")
         self.window.overrideredirect(True)         # No window frame
         self.window.attributes("-topmost", True)    # Always on top
-        self.window.attributes("-transparentcolor", self.TRANSPARENT_COLOR)
-        self.window.config(bg=self.TRANSPARENT_COLOR)
 
-        # Make click-through on Windows
-        try:
-            import ctypes
-            hwnd = int(self.window.frame(), 16)
-            # WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW
-            style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
-            style |= 0x00080000 | 0x00000020 | 0x00000080
-            ctypes.windll.user32.SetWindowLongW(hwnd, -20, style)
-        except Exception:
-            pass
+        if sys.platform == "win32":
+            self.window.attributes("-transparentcolor", self.TRANSPARENT_COLOR)
+            self.window.config(bg=self.TRANSPARENT_COLOR)
+
+            # Ensure window is fully mapped before setting extended styles
+            self.window.update_idletasks()
+            self.window.update()
+
+            # Make click-through on Windows
+            try:
+                import ctypes
+                from ctypes import wintypes
+
+                user32 = ctypes.windll.user32
+                GWL_EXSTYLE = -20
+                WS_EX_LAYERED = 0x00080000
+                WS_EX_TRANSPARENT = 0x00000020
+                WS_EX_TOOLWINDOW = 0x00000080
+
+                # Use winfo_id() for reliable HWND retrieval
+                hwnd = self.window.winfo_id()
+
+                style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                style |= WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW
+                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+
+                # Force Windows to re-read the style
+                user32.SetWindowPos(
+                    hwnd, -1,  # HWND_TOPMOST
+                    0, 0, self._screen_w, self._screen_h,
+                    0x0020 | 0x0002  # SWP_FRAMECHANGED | SWP_NOMOVE (reapply styles)
+                )
+                self._click_through = True
+            except Exception as e:
+                print(f"[!] Overlay click-through failed: {e}")
+                print("[!] Overlay disabled to prevent mouse blocking")
+                self._click_through = False
+                self.window.destroy()
+                self.window = None
+                self._visible = False
+                return
+        else:
+            # Linux/macOS - tkinter overlays block input, skip overlay entirely
+            print("[!] Game overlay not supported on this platform (no click-through)")
+            self.window.destroy()
+            self.window = None
+            self._visible = False
+            return
 
         self.canvas = tk.Canvas(
             self.window,

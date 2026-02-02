@@ -384,24 +384,39 @@ class AimbotGUI(ctk.CTk):
     # ──────────────────────── Overlay ────────────────────────
 
     def _init_overlay(self):
-        """Create the transparent game overlay."""
+        """Prepare overlay (lazy - only created when enabled)."""
+        self.game_overlay = None
+        if self.config["overlay_enabled"]:
+            self._create_overlay()
+
+    def _create_overlay(self):
+        """Actually create the transparent game overlay window."""
         try:
             from core.game_overlay import GameOverlay
             self.game_overlay = GameOverlay(self, self.config)
             self.game_overlay.create()
-            if not self.config["overlay_enabled"]:
-                self.game_overlay.hide()
+            # If creation failed (e.g. no click-through support), overlay is None-like
+            if self.game_overlay.window is None:
+                print("[!] Overlay creation failed - disabled")
+                self.game_overlay = None
+                self.config["overlay_enabled"] = False
+                self.overlay_toggle_var.set(False)
         except Exception as e:
             print(f"[!] Game overlay init failed: {e}")
             self.game_overlay = None
+            self.config["overlay_enabled"] = False
+            self.overlay_toggle_var.set(False)
 
     def _toggle_overlay(self):
         val = self.overlay_toggle_var.get()
         self.config["overlay_enabled"] = val
-        if self.game_overlay:
-            if val:
+        if val:
+            if self.game_overlay is None:
+                self._create_overlay()
+            elif self.game_overlay:
                 self.game_overlay.show()
-            else:
+        else:
+            if self.game_overlay:
                 self.game_overlay.hide()
 
     # ──────────────────────── Monitors ────────────────────────
