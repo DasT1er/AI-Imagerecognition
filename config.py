@@ -50,7 +50,7 @@ DEFAULT_CONFIG = {
     "humanize_delay_min": 0.0,     # Min random delay before moving (ms)
     "humanize_delay_max": 3.0,     # Max random delay before moving (ms)
     "max_move_per_tick": 120,      # Max pixels to move per frame (speed cap)
-    "min_move_threshold": 0.5,     # Don't move if delta < this (avoids twitching)
+    "min_move_threshold": 1.5,     # Don't move if delta < this (avoids twitching)
     "flick_enabled": True,         # Allow fast flicks for close targets
     "flick_threshold": 25,         # Below this distance -> flick
     "prediction_enabled": True,    # Lead targets based on velocity

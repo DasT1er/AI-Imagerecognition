@@ -123,7 +123,7 @@ class AimEngine:
             if best_match is not None and best_match_dist < 80:
                 self._target_lost_frames = 0
                 # Smooth the aim point (EMA) to prevent bbox jitter
-                best_match = self._smooth_aim_point(best_match)
+                best_match = self._smooth_aim_point(best_match, screen_center)
                 self._current_target = best_match
                 return best_match
 
@@ -146,15 +146,17 @@ class AimEngine:
             sorted_candidates = self._sort_candidates(candidates, cfg["target_sort"])
 
         new_target = sorted_candidates[0]
-        new_target = self._smooth_aim_point(new_target)
+        self._smoothed_aim = None  # Reset smoothing for new target
+        new_target = self._smooth_aim_point(new_target, screen_center)
         self._current_target = new_target
         self._lock_timer = now
         self._target_lost_frames = 0
         return new_target
 
-    def _smooth_aim_point(self, target: TrackedTarget) -> TrackedTarget:
+    def _smooth_aim_point(self, target: TrackedTarget,
+                          screen_center: Tuple[int, int] = None) -> TrackedTarget:
         """Apply EMA smoothing to the aim point to reduce bbox jitter."""
-        alpha = 0.5  # 0.0 = no smoothing, 1.0 = fully smoothed (never moves)
+        alpha = 0.3  # Low alpha = less lag, more responsive but still smoothed
         sp = target.screen_point
 
         if self._smoothed_aim is None:
@@ -165,12 +167,17 @@ class AimEngine:
             sy = alpha * self._smoothed_aim[1] + (1 - alpha) * sp[1]
             self._smoothed_aim = (sx, sy)
 
-        # Return target with smoothed screen point
+        # Calculate correct distance_to_crosshair from screen center
+        if screen_center is not None:
+            dist = distance(screen_center, self._smoothed_aim)
+        else:
+            dist = target.distance_to_crosshair
+
         return TrackedTarget(
             detection=target.detection,
             aim_point=target.aim_point,
             screen_point=self._smoothed_aim,
-            distance_to_crosshair=distance(self._smoothed_aim, target.screen_point),
+            distance_to_crosshair=dist,
             is_head=target.is_head,
             velocity=target.velocity,
             last_seen=target.last_seen,
@@ -240,8 +247,8 @@ class AimEngine:
 
         dist = distance(screen_center, aim_point)
 
-        # Minimum movement threshold - avoid micro-twitching
-        if dist < cfg.get("min_move_threshold", 0.5):
+        # Minimum movement threshold - avoid micro-twitching near target
+        if dist < cfg.get("min_move_threshold", 1.0):
             return (0, 0)
 
         # Flick: very close target -> snap directly
