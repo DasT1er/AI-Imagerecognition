@@ -171,15 +171,6 @@ class AimbotGUI(ctk.CTk):
                          lambda v: self._set("smoothing", round(float(v), 3)),
                          resolution=0.01)
 
-        curve_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        curve_frame.pack(fill="x", padx=15, pady=3)
-        ctk.CTkLabel(curve_frame, text="Smooth Curve:").pack(side="left")
-        self.curve_var = ctk.StringVar(value=self.config["smoothing_curve"])
-        ctk.CTkOptionMenu(curve_frame, variable=self.curve_var,
-                           values=["bezier", "linear", "ease_out", "ease_in_out"],
-                           width=140,
-                           command=lambda v: self._set("smoothing_curve", v)).pack(side="right")
-
         self.humanize_var = ctk.BooleanVar(value=self.config["humanize"])
         ctk.CTkSwitch(tab, text="Humanize", variable=self.humanize_var,
                        command=lambda: self._set("humanize", self.humanize_var.get()),
@@ -193,21 +184,6 @@ class AimbotGUI(ctk.CTk):
         self.speed_var = ctk.IntVar(value=self.config["max_move_per_tick"])
         self._add_slider(tab, "Max Speed", self.speed_var, 10, 200,
                          lambda v: self._set("max_move_per_tick", int(v)))
-
-        self.pred_var = ctk.BooleanVar(value=self.config["prediction_enabled"])
-        ctk.CTkSwitch(tab, text="Prediction", variable=self.pred_var,
-                       command=lambda: self._set("prediction_enabled", self.pred_var.get()),
-                       ).pack(anchor="w", padx=15, pady=3)
-
-        self.pred_factor_var = ctk.DoubleVar(value=self.config["prediction_factor"])
-        self._add_slider(tab, "Pred. Factor", self.pred_factor_var, 0.0, 1.0,
-                         lambda v: self._set("prediction_factor", round(float(v), 2)),
-                         resolution=0.05)
-
-        self.flick_var = ctk.BooleanVar(value=self.config["flick_enabled"])
-        ctk.CTkSwitch(tab, text="Flick Aim", variable=self.flick_var,
-                       command=lambda: self._set("flick_enabled", self.flick_var.get()),
-                       ).pack(anchor="w", padx=15, pady=3)
 
     # ──────────────────────── Target Tab ────────────────────────
 
@@ -503,13 +479,9 @@ class AimbotGUI(ctk.CTk):
         self.aim_mode_var.set(cfg["aim_mode"])
         self.fov_var.set(cfg["fov_radius"])
         self.smooth_var.set(cfg["smoothing"])
-        self.curve_var.set(cfg["smoothing_curve"])
         self.humanize_var.set(cfg["humanize"])
         self.jitter_var.set(cfg["humanize_jitter"])
         self.speed_var.set(cfg["max_move_per_tick"])
-        self.pred_var.set(cfg["prediction_enabled"])
-        self.pred_factor_var.set(cfg["prediction_factor"])
-        self.flick_var.set(cfg["flick_enabled"])
         self.prefer_head_var.set(cfg.get("prefer_head", True))
         self.bone_var.set(cfg["target_bone"])
         self.sort_var.set(cfg["target_sort"])

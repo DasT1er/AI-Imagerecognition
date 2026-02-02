@@ -43,18 +43,10 @@ DEFAULT_CONFIG = {
     "aim_key": None,               # None = mouse1 trigger, or specific key like "XBUTTON2"
     "fov_radius": 150,             # Pixel radius from crosshair - ignore targets outside
     "smoothing": 0.35,             # 0.0 = instant snap, 1.0 = very slow (lower = faster)
-    "smoothing_curve": "bezier",   # "linear", "bezier", "ease_out", "ease_in_out"
-    "distance_scaling": True,      # Move faster when far, slower when close
     "humanize": True,
-    "humanize_jitter": 1.5,        # Random pixel offset to look human
-    "humanize_delay_min": 0.0,     # Min random delay before moving (ms)
-    "humanize_delay_max": 3.0,     # Max random delay before moving (ms)
+    "humanize_jitter": 1.0,        # Random pixel offset to look human
     "max_move_per_tick": 120,      # Max pixels to move per frame (speed cap)
     "min_move_threshold": 1.5,     # Don't move if delta < this (avoids twitching)
-    "flick_enabled": True,         # Allow fast flicks for close targets
-    "flick_threshold": 25,         # Below this distance -> flick
-    "prediction_enabled": True,    # Lead targets based on velocity
-    "prediction_factor": 0.25,     # How much to lead
 
     # --- Recoil Control (RCS) ---
     "rcs_enabled": False,
@@ -76,7 +68,7 @@ DEFAULT_CONFIG = {
     "show_fps": True,
     "show_target_info": True,
     "box_color": [255, 50, 50],
-    "head_box_color": [255, 0, 255],
+    "head_box_color": [0, 255, 255],
     "fov_color": [255, 255, 255],
     "crosshair_color": [0, 255, 0],
     "snapline_color": [255, 255, 0],
