@@ -35,17 +35,26 @@ class AimEngine:
         self._prev_targets: dict = {}
         self._current_target: Optional[TrackedTarget] = None
         self._velocity_history: dict = {}  # EMA velocity per target key
+        self._smoothed_aim: Optional[Tuple[float, float]] = None  # EMA-smoothed aim point
+        self._lock_timer: float = 0.0  # When we locked onto current target
+        self._target_lost_frames: int = 0  # Frames since locked target was last seen
 
     def select_target(self, detections: List[Detection],
                       screen_center: Tuple[int, int],
                       capture_offset: Tuple[int, int]) -> Optional[TrackedTarget]:
         """
         Select best target from detections.
+        Uses target locking to prevent flickering between enemies.
         If prefer_head is on and a head-class is detected, aim at head bbox center.
         Otherwise fall back to body bbox + bone ratio.
         """
         if not detections:
+            self._target_lost_frames += 1
+            # Keep target for a few frames to avoid losing it on detection flicker
+            if self._current_target is not None and self._target_lost_frames < 5:
+                return self._current_target
             self._current_target = None
+            self._smoothed_aim = None
             return None
 
         cfg = self.config
@@ -54,45 +63,22 @@ class AimEngine:
         head_ids = set(cfg.get("head_class_ids", [1, 3]))
         prefer_head = cfg.get("prefer_head", True)
 
-        # Group detections: find heads and bodies
-        heads = [d for d in detections if d.class_id in head_ids]
-        bodies = [d for d in detections if d.class_id not in head_ids]
-
         candidates = []
 
-        # Process head detections (aim at center of head bbox)
-        if prefer_head:
-            for det in heads:
+        for det in detections:
+            is_head = det.class_id in head_ids
+
+            if is_head:
                 aim_local = det.center  # Center of head bbox = direct headshot
-                aim_screen = (
-                    aim_local[0] + capture_offset[0],
-                    aim_local[1] + capture_offset[1],
+            else:
+                aim_local = det.get_aim_point(
+                    bone=cfg["target_bone"],
+                    head_r=cfg["head_ratio"],
+                    neck_r=cfg["neck_ratio"],
+                    chest_r=cfg["chest_ratio"],
+                    body_r=cfg["body_ratio"],
                 )
-                dist = distance(screen_center, aim_screen)
-                if dist > fov:
-                    continue
 
-                velocity = self._track_velocity(det, aim_screen, now)
-
-                candidates.append(TrackedTarget(
-                    detection=det,
-                    aim_point=aim_local,
-                    screen_point=aim_screen,
-                    distance_to_crosshair=dist,
-                    is_head=True,
-                    velocity=velocity,
-                    last_seen=now,
-                ))
-
-        # Process body detections (use bone ratio)
-        for det in bodies:
-            aim_local = det.get_aim_point(
-                bone=cfg["target_bone"],
-                head_r=cfg["head_ratio"],
-                neck_r=cfg["neck_ratio"],
-                chest_r=cfg["chest_ratio"],
-                body_r=cfg["body_ratio"],
-            )
             aim_screen = (
                 aim_local[0] + capture_offset[0],
                 aim_local[1] + capture_offset[1],
@@ -108,16 +94,48 @@ class AimEngine:
                 aim_point=aim_local,
                 screen_point=aim_screen,
                 distance_to_crosshair=dist,
-                is_head=False,
+                is_head=is_head,
                 velocity=velocity,
                 last_seen=now,
             ))
 
         if not candidates:
+            self._target_lost_frames += 1
+            if self._current_target is not None and self._target_lost_frames < 5:
+                return self._current_target
             self._current_target = None
+            self._smoothed_aim = None
             return None
 
-        # Prioritize: head targets first (closer is better), then body targets
+        # --- Target locking: stick to current target unless it's gone ---
+        if self._current_target is not None:
+            # Find the candidate closest to our locked target
+            best_match = None
+            best_match_dist = float('inf')
+            for c in candidates:
+                d = distance(self._current_target.screen_point, c.screen_point)
+                if d < best_match_dist:
+                    best_match = c
+                    best_match_dist = d
+
+            # If locked target is still nearby (within 80px), keep it
+            # Only switch if a MUCH better target exists (head vs body, or way closer)
+            if best_match is not None and best_match_dist < 80:
+                self._target_lost_frames = 0
+                # Smooth the aim point (EMA) to prevent bbox jitter
+                best_match = self._smooth_aim_point(best_match)
+                self._current_target = best_match
+                return best_match
+
+            # Locked target gone - check if we should switch or wait
+            lock_duration = now - self._lock_timer
+            if lock_duration < 0.15:
+                # Very recently locked, don't switch yet (anti-flicker)
+                self._target_lost_frames += 1
+                if self._target_lost_frames < 5:
+                    return self._current_target
+
+        # --- No lock or lock broken: pick best new target ---
         if prefer_head:
             head_candidates = [c for c in candidates if c.is_head]
             body_candidates = [c for c in candidates if not c.is_head]
@@ -127,21 +145,42 @@ class AimEngine:
         else:
             sorted_candidates = self._sort_candidates(candidates, cfg["target_sort"])
 
-        # Sticky targeting: prefer current target if still visible
-        if self._current_target is not None:
-            for c in sorted_candidates:
-                prev = self._current_target.screen_point
-                if distance(prev, c.screen_point) < 40:
-                    self._current_target = c
-                    return c
+        new_target = sorted_candidates[0]
+        new_target = self._smooth_aim_point(new_target)
+        self._current_target = new_target
+        self._lock_timer = now
+        self._target_lost_frames = 0
+        return new_target
 
-        self._current_target = sorted_candidates[0]
-        return sorted_candidates[0]
+    def _smooth_aim_point(self, target: TrackedTarget) -> TrackedTarget:
+        """Apply EMA smoothing to the aim point to reduce bbox jitter."""
+        alpha = 0.5  # 0.0 = no smoothing, 1.0 = fully smoothed (never moves)
+        sp = target.screen_point
+
+        if self._smoothed_aim is None:
+            self._smoothed_aim = sp
+        else:
+            # EMA: new = alpha * old + (1-alpha) * raw
+            sx = alpha * self._smoothed_aim[0] + (1 - alpha) * sp[0]
+            sy = alpha * self._smoothed_aim[1] + (1 - alpha) * sp[1]
+            self._smoothed_aim = (sx, sy)
+
+        # Return target with smoothed screen point
+        return TrackedTarget(
+            detection=target.detection,
+            aim_point=target.aim_point,
+            screen_point=self._smoothed_aim,
+            distance_to_crosshair=distance(self._smoothed_aim, target.screen_point),
+            is_head=target.is_head,
+            velocity=target.velocity,
+            last_seen=target.last_seen,
+        )
 
     def _track_velocity(self, det: Detection, aim_screen: tuple,
                         now: float) -> Tuple[float, float]:
         """Track velocity with exponential moving average for smoother prediction."""
-        target_key = f"{det.class_id}_{int(det.center[0]//15)}_{int(det.center[1]//15)}"
+        # Use wider grid cells (//30) to improve tracking consistency
+        target_key = f"{det.class_id}_{int(det.center[0]//30)}_{int(det.center[1]//30)}"
         velocity = (0.0, 0.0)
 
         if target_key in self._prev_targets:
@@ -152,7 +191,7 @@ class AimEngine:
                 raw_vy = (aim_screen[1] - prev.screen_point[1]) / dt
 
                 # EMA smoothing for velocity
-                alpha = 0.4
+                alpha = 0.3
                 prev_vel = self._velocity_history.get(target_key, (0.0, 0.0))
                 vx = alpha * raw_vx + (1 - alpha) * prev_vel[0]
                 vy = alpha * raw_vy + (1 - alpha) * prev_vel[1]
@@ -164,6 +203,13 @@ class AimEngine:
             detection=det, aim_point=(0, 0), screen_point=aim_screen,
             distance_to_crosshair=0, velocity=velocity, last_seen=now,
         )
+
+        # Cleanup old entries (older than 1 second)
+        stale = [k for k, v in self._prev_targets.items() if now - v.last_seen > 1.0]
+        for k in stale:
+            del self._prev_targets[k]
+            self._velocity_history.pop(k, None)
+
         return velocity
 
     def _sort_candidates(self, candidates: list, sort_mode: str) -> list:
@@ -245,5 +291,7 @@ class AimEngine:
 
     def reset(self):
         self._current_target = None
+        self._smoothed_aim = None
+        self._target_lost_frames = 0
         self._prev_targets.clear()
         self._velocity_history.clear()

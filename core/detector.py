@@ -67,6 +67,12 @@ class YOLODetector:
         self.verbose = verbose
         self.inference_time = 0.0
 
+        # Read model class names
+        self.class_names = {}
+        if hasattr(self.model, 'names'):
+            self.class_names = dict(self.model.names)
+        self.num_classes = len(self.class_names)
+
         # Warmup
         dummy = np.zeros((imgsz, imgsz, 3), dtype=np.uint8)
         self.model.predict(

@@ -64,7 +64,10 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
         gui.after(0, lambda: gui._flash_status(f"Model error: {e}", "#ff5555"))
         return
 
-    print(f"[+] Model loaded")
+    print(f"[+] Model loaded ({detector.num_classes} classes)")
+
+    # Auto-detect model classes and setup team filtering
+    config.setup_classes_from_model(detector.class_names)
 
     # Init capture
     capture = ScreenCapture(
@@ -77,9 +80,6 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
     hotkeys = HotkeyManager(input_handler)
     aim_engine = AimEngine(config)
     triggerbot = Triggerbot(config)
-
-    # Update target classes based on team selection
-    config.update_target_classes()
 
     gui.after(0, lambda: gui._update_status("Running", "#55ff55"))
     print("[+] Bot running")

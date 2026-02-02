@@ -110,12 +110,63 @@ class Config:
     def items(self):
         return self._data.items()
 
+    def setup_classes_from_model(self, class_names: dict):
+        """
+        Auto-detect head/body/team class IDs from model class names.
+        Supports any model: 2-class (player/head), 4-class (t/t_head/ct/ct_head), etc.
+        """
+        self._data["_model_class_names"] = class_names
+        num = len(class_names)
+
+        # Detect head classes by name (contains "head")
+        head_ids = []
+        body_ids = []
+        t_ids = []
+        ct_ids = []
+
+        for cid, name in class_names.items():
+            name_lower = name.lower()
+            is_head = "head" in name_lower
+            is_t = name_lower.startswith("t") and not name_lower.startswith("ct")
+            is_ct = name_lower.startswith("ct")
+
+            if is_head:
+                head_ids.append(int(cid))
+            else:
+                body_ids.append(int(cid))
+
+            if is_t:
+                t_ids.append(int(cid))
+            elif is_ct:
+                ct_ids.append(int(cid))
+
+        self._data["head_class_ids"] = head_ids
+        self._data["body_class_ids"] = body_ids
+        self._data["_t_class_ids"] = t_ids      # All terrorist classes (body+head)
+        self._data["_ct_class_ids"] = ct_ids     # All CT classes (body+head)
+        self._data["_has_teams"] = len(t_ids) > 0 and len(ct_ids) > 0
+
+        print(f"[+] Model classes: {class_names}")
+        print(f"    Head IDs: {head_ids}, Body IDs: {body_ids}")
+        print(f"    T IDs: {t_ids}, CT IDs: {ct_ids}")
+        print(f"    Team-based model: {self._data['_has_teams']}")
+
+        self.update_target_classes()
+
     def update_target_classes(self):
-        """Set target_classes based on my_team selection."""
-        if self._data["my_team"] == "ct":
-            self._data["target_classes"] = [0, 1]
+        """Set target_classes based on my_team selection and detected model classes."""
+        has_teams = self._data.get("_has_teams", False)
+
+        if has_teams:
+            # 4-class model: filter by enemy team
+            if self._data["my_team"] == "ct":
+                self._data["target_classes"] = list(self._data["_t_class_ids"])
+            else:
+                self._data["target_classes"] = list(self._data["_ct_class_ids"])
         else:
-            self._data["target_classes"] = [2, 3]
+            # 2-class or generic model: target ALL classes (no team filtering)
+            names = self._data.get("_model_class_names", {})
+            self._data["target_classes"] = [int(cid) for cid in names.keys()]
 
     def save(self):
         try:
