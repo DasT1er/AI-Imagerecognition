@@ -50,14 +50,20 @@ DEFAULT_CONFIG = {
 
     # --- Recoil Control (RCS) ---
     "rcs_enabled": False,
-    "rcs_strength_x": 0.5,        # Horizontal recoil compensation (0-1)
-    "rcs_strength_y": 0.5,        # Vertical recoil compensation (0-1)
+    "rcs_strength_x": 0.5,        # Horizontal compensation (0-1)
+    "rcs_strength_y": 0.7,        # Vertical compensation (0-1)
+    "rcs_pull_per_shot": 4.0,     # Pixels to pull down per shot at max recoil
+    "rcs_fire_rate_ms": 100,      # ~600 RPM (AK-47, M4A4)
 
     # --- Triggerbot ---
     "triggerbot_enabled": False,
     "triggerbot_key": "XBUTTON1",  # Mouse side button
     "triggerbot_delay_min": 50,    # Min reaction time (ms)
     "triggerbot_delay_max": 150,   # Max reaction time (ms)
+    "triggerbot_margin": 3,        # Pixel margin around crosshair for hit detection
+    "triggerbot_head_only": False,  # Only fire when crosshair is on head bbox
+    "triggerbot_burst_max": 5,     # Max shots in a burst
+    "triggerbot_burst_window": 0.5, # Seconds before burst resets
 
     # --- Visuals / Overlay ---
     "overlay_enabled": False,

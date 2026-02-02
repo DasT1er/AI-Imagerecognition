@@ -240,6 +240,11 @@ class AimbotGUI(ctk.CTk):
                        command=lambda: self._set("triggerbot_enabled", self.trig_var.get()),
                        ).pack(anchor="w", padx=15, pady=(10, 5))
 
+        self.trig_head_only_var = ctk.BooleanVar(value=self.config.get("triggerbot_head_only", False))
+        ctk.CTkSwitch(tab, text="Head Only", variable=self.trig_head_only_var,
+                       command=lambda: self._set("triggerbot_head_only", self.trig_head_only_var.get()),
+                       ).pack(anchor="w", padx=15, pady=3)
+
         self.trig_min_var = ctk.IntVar(value=self.config["triggerbot_delay_min"])
         self._add_slider(tab, "Min Delay (ms)", self.trig_min_var, 0, 500,
                          lambda v: self._set("triggerbot_delay_min", int(v)))
@@ -247,6 +252,10 @@ class AimbotGUI(ctk.CTk):
         self.trig_max_var = ctk.IntVar(value=self.config["triggerbot_delay_max"])
         self._add_slider(tab, "Max Delay (ms)", self.trig_max_var, 0, 500,
                          lambda v: self._set("triggerbot_delay_max", int(v)))
+
+        self.trig_margin_var = ctk.IntVar(value=self.config.get("triggerbot_margin", 3))
+        self._add_slider(tab, "Margin (px)", self.trig_margin_var, 0, 20,
+                         lambda v: self._set("triggerbot_margin", int(v)))
 
         ctk.CTkLabel(tab, text="─── Recoil Control ───",
                      font=ctk.CTkFont(size=12)).pack(padx=15, pady=(15, 5))
@@ -257,14 +266,19 @@ class AimbotGUI(ctk.CTk):
                        ).pack(anchor="w", padx=15, pady=3)
 
         self.rcs_x_var = ctk.DoubleVar(value=self.config["rcs_strength_x"])
-        self._add_slider(tab, "RCS X", self.rcs_x_var, 0.0, 1.0,
+        self._add_slider(tab, "RCS Horizontal", self.rcs_x_var, 0.0, 1.0,
                          lambda v: self._set("rcs_strength_x", round(float(v), 2)),
                          resolution=0.05)
 
         self.rcs_y_var = ctk.DoubleVar(value=self.config["rcs_strength_y"])
-        self._add_slider(tab, "RCS Y", self.rcs_y_var, 0.0, 1.0,
+        self._add_slider(tab, "RCS Vertical", self.rcs_y_var, 0.0, 1.0,
                          lambda v: self._set("rcs_strength_y", round(float(v), 2)),
                          resolution=0.05)
+
+        self.rcs_pull_var = ctk.DoubleVar(value=self.config.get("rcs_pull_per_shot", 4.0))
+        self._add_slider(tab, "Pull/Shot (px)", self.rcs_pull_var, 1.0, 15.0,
+                         lambda v: self._set("rcs_pull_per_shot", round(float(v), 1)),
+                         resolution=0.5)
 
     # ──────────────────────── Visuals Tab ────────────────────────
 
@@ -366,12 +380,17 @@ class AimbotGUI(ctk.CTk):
             self._create_overlay()
 
     def _create_overlay(self):
-        """Actually create the transparent game overlay window."""
+        """Actually create the transparent game overlay window on the game monitor."""
+        # Destroy old overlay if exists
+        if self.game_overlay is not None:
+            self.game_overlay.destroy()
+            self.game_overlay = None
+
         try:
             from core.game_overlay import GameOverlay
+            mon_idx = self.config.get("monitor_index", 1)
             self.game_overlay = GameOverlay(self, self.config)
-            self.game_overlay.create()
-            # If creation failed (e.g. no click-through support), overlay is None-like
+            self.game_overlay.create(monitor_index=mon_idx)
             if self.game_overlay.window is None:
                 print("[!] Overlay creation failed - disabled")
                 self.game_overlay = None
@@ -421,6 +440,9 @@ class AimbotGUI(ctk.CTk):
         try:
             idx = int(value.split(" - ")[0])
             self.config["monitor_index"] = idx
+            # Recreate overlay on new monitor if active
+            if self.config["overlay_enabled"] and self.game_overlay is not None:
+                self._create_overlay()
         except Exception:
             pass
 

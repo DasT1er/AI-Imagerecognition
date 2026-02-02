@@ -31,12 +31,13 @@ class AimEngine:
         self._current_target: Optional[TrackedTarget] = None
         self._lock_timer: float = 0.0
         self._lost_frames: int = 0
+        self._locked_det_center: Optional[Tuple[float, float]] = None
 
     def select_target(self, detections: List[Detection],
                       screen_center: Tuple[int, int],
                       capture_offset: Tuple[int, int]) -> Optional[TrackedTarget]:
         """
-        Select best target. Locks onto a target and stays on it.
+        Select best target. Hard-locks onto a target until it dies/leaves FOV.
         Prefers head-class detections when available.
         """
         cfg = self.config
@@ -81,30 +82,35 @@ class AimEngine:
         # No candidates found
         if not candidates:
             self._lost_frames += 1
-            # Hold current target briefly if detection flickers (max 3 frames)
-            if self._current_target is not None and self._lost_frames < 3:
+            if self._current_target is not None and self._lost_frames < 5:
                 return self._current_target
             self._current_target = None
+            self._locked_det_center = None
             return None
 
-        # --- Target lock: stay on current target if still visible ---
-        if self._current_target is not None:
+        # --- Hard target lock using bbox center in LOCAL coords ---
+        # This prevents snapping: we track the detection's position in the
+        # capture frame, not screen coords (which shift as aim moves).
+        if self._current_target is not None and self._locked_det_center is not None:
             best_match = None
             best_dist = float('inf')
+
             for c in candidates:
-                d = distance(self._current_target.screen_point, c.screen_point)
+                # Match by detection bbox center in capture-local coordinates
+                d = distance(self._locked_det_center, c.detection.center)
                 if d < best_dist:
                     best_match = c
                     best_dist = d
 
-            # Target still nearby -> keep it (within 100px accounts for movement)
-            if best_match is not None and best_dist < 100:
+            # Locked target still present (within 120px in local coords)
+            if best_match is not None and best_dist < 120:
                 self._lost_frames = 0
+                self._locked_det_center = best_match.detection.center
                 self._current_target = best_match
                 return best_match
 
-            # Target gone but lock is very fresh -> hold briefly
-            if now - self._lock_timer < 0.1 and self._lost_frames < 3:
+            # Target gone but lock is fresh -> hold a few frames
+            if now - self._lock_timer < 0.2 and self._lost_frames < 5:
                 self._lost_frames += 1
                 return self._current_target
 
@@ -118,10 +124,12 @@ class AimEngine:
         else:
             sorted_cands = sorted(candidates, key=lambda t: t.distance_to_crosshair)
 
-        self._current_target = sorted_cands[0]
+        chosen = sorted_cands[0]
+        self._current_target = chosen
+        self._locked_det_center = chosen.detection.center
         self._lock_timer = now
         self._lost_frames = 0
-        return self._current_target
+        return chosen
 
     def compute_move(self, target: TrackedTarget,
                      screen_center: Tuple[int, int]) -> Tuple[int, int]:
@@ -178,4 +186,5 @@ class AimEngine:
 
     def reset(self):
         self._current_target = None
+        self._locked_det_center = None
         self._lost_frames = 0

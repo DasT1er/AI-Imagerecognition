@@ -25,6 +25,7 @@ from core.detector import YOLODetector
 from core.aim import AimEngine
 from core.input_handler import InputHandler, HotkeyManager
 from core.triggerbot import Triggerbot
+from core.rcs import RecoilControl
 from gui.app import AimbotGUI
 
 
@@ -80,6 +81,7 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
     hotkeys = HotkeyManager(input_handler)
     aim_engine = AimEngine(config)
     triggerbot = Triggerbot(config)
+    rcs = RecoilControl(config)
 
     gui.after(0, lambda: gui._update_status("Running", "#55ff55"))
     print("[+] Bot running")
@@ -169,9 +171,22 @@ def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
                 elif aim_mode == "always":
                     should_aim = True
 
+                is_firing = input_handler.is_mouse_left_pressed()
+
                 if should_aim and target is not None:
                     dx, dy = aim_engine.compute_move(target, screen_center)
+
+                    # Apply recoil compensation while firing
+                    if is_firing:
+                        rcs_dx, rcs_dy = rcs.update(True)
+                        dx += rcs_dx
+                        dy += rcs_dy
+                    else:
+                        rcs.update(False)
+
                     input_handler.move_mouse_relative(dx, dy)
+                else:
+                    rcs.update(False)
 
                 # Triggerbot
                 if config["triggerbot_enabled"]:

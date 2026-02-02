@@ -25,20 +25,36 @@ class GameOverlay:
         self._screen_w = 0
         self._screen_h = 0
 
-    def create(self):
-        """Create the transparent overlay window."""
+    def create(self, monitor_index: int = 1):
+        """Create the transparent overlay window on the specified monitor."""
         if sys.platform != "win32":
             print("[!] Game overlay only works on Windows")
             return
 
-        self._screen_w = self.root.winfo_screenwidth()
-        self._screen_h = self.root.winfo_screenheight()
+        # Get monitor geometry from mss
+        import mss
+        sct = mss.mss()
+        monitors = sct.monitors
+        if monitor_index < 0 or monitor_index >= len(monitors):
+            monitor_index = 1 if len(monitors) > 1 else 0
+        mon = monitors[monitor_index]
+        sct.close()
 
-        # Create toplevel window
+        self._mon_left = mon["left"]
+        self._mon_top = mon["top"]
+        self._screen_w = mon["width"]
+        self._screen_h = mon["height"]
+
+        print(f"    Overlay on monitor {monitor_index}: "
+              f"{self._screen_w}x{self._screen_h} at ({self._mon_left},{self._mon_top})")
+
+        # Create toplevel window positioned on the game monitor
         self.window = tk.Toplevel(self.root)
         self.window.title("")
         self.window.overrideredirect(True)
-        self.window.geometry(f"{self._screen_w}x{self._screen_h}+0+0")
+        self.window.geometry(
+            f"{self._screen_w}x{self._screen_h}+{self._mon_left}+{self._mon_top}"
+        )
         self.window.config(bg=self.CHROMA_KEY)
 
         # Create canvas
