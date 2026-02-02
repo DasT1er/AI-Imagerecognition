@@ -1,20 +1,20 @@
 """
 CS2 AI Aimbot - Main Entry Point
 
-Hotkeys:
-  F1      - Toggle aimbot on/off
-  INSERT  - Toggle settings menu
-  F12     - Panic key (kill everything)
-
 Usage:
   1. Place your trained YOLO model as models/best.pt
   2. Run: python main.py
-  3. Press F1 to enable
+  3. Select monitor, adjust settings in GUI
+  4. Click Start
+
+Hotkeys (while running):
+  F1   - Toggle aimbot on/off
+  F12  - Panic key (stop bot)
 """
 import sys
 import os
 import time
-import pygame
+import threading
 
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,21 +24,16 @@ from core.capture import ScreenCapture
 from core.detector import YOLODetector
 from core.aim import AimEngine
 from core.input_handler import InputHandler, HotkeyManager
-from core.overlay import Overlay
-from core.menu import Menu
 from core.triggerbot import Triggerbot
+from core.rcs import RecoilControl
+from gui.app import AimbotGUI
 
 
-def main():
-    print("=" * 50)
-    print("  CS2 AI AIMBOT")
-    print("=" * 50)
-    print()
-
-    # Load config
-    config = Config()
-    print(f"[+] Config loaded")
-
+def bot_loop(config, gui: AimbotGUI, stop_event: threading.Event):
+    """
+    Main bot loop. Runs in a background thread.
+    Captures screen, detects, aims, and sends preview frames to GUI.
+    """
     # Resolve model path
     model_path = config["model_path"]
     if not os.path.isabs(model_path):
@@ -46,87 +41,106 @@ def main():
 
     if not os.path.exists(model_path):
         print(f"[!] Model not found: {model_path}")
-        print(f"    Place your YOLO .pt model at: {model_path}")
-        print(f"    Or update 'model_path' in settings.json")
-        input("Press Enter to exit...")
+        gui.after(0, lambda: gui._on_stop())
+        gui.after(0, lambda: gui._flash_status(
+            f"Model not found: {model_path}", "#ff5555"))
         return
 
-    # Initialize components
-    print(f"[+] Loading YOLO model: {model_path}")
-    print(f"    Device: {config['device']}  |  FP16: {config['half_precision']}")
+    # Init detector
+    print(f"[+] Loading model: {model_path} (device={config['device']})")
+    gui.after(0, lambda: gui._update_status("Loading model...", "#ffaa55"))
 
-    detector = YOLODetector(
-        model_path=model_path,
-        device=config["device"],
-        conf=config["confidence_threshold"],
-        imgsz=config["imgsz"],
-        half=config["half_precision"],
-        verbose=config["verbose"],
-    )
-    print(f"[+] Model loaded and warmed up")
+    try:
+        detector = YOLODetector(
+            model_path=model_path,
+            device=config["device"],
+            conf=config["confidence_threshold"],
+            imgsz=config["imgsz"],
+            half=config["half_precision"],
+            verbose=config["verbose"],
+        )
+    except Exception as e:
+        print(f"[!] Failed to load model: {e}")
+        gui.after(0, lambda: gui._on_stop())
+        gui.after(0, lambda: gui._flash_status(f"Model error: {e}", "#ff5555"))
+        return
 
+    print(f"[+] Model loaded ({detector.num_classes} classes)")
+
+    # Auto-detect model classes and setup team filtering
+    config.setup_classes_from_model(detector.class_names)
+
+    # Init capture
     capture = ScreenCapture(
         width=config["detection_region_width"],
         height=config["detection_region_height"],
+        monitor_index=config.get("monitor_index", 1),
     )
-    print(f"[+] Screen capture ready ({capture.screen_width}x{capture.screen_height})")
 
     input_handler = InputHandler()
     hotkeys = HotkeyManager(input_handler)
     aim_engine = AimEngine(config)
     triggerbot = Triggerbot(config)
+    rcs = RecoilControl(config)
 
-    overlay = Overlay(config)
-    overlay.init()
-    print(f"[+] Overlay initialized")
+    gui.after(0, lambda: gui._update_status("Running", "#55ff55"))
+    print("[+] Bot running")
 
-    menu = Menu(config)
-    menu.init_fonts()
-
-    print()
-    print(f"  F1     = Toggle aimbot")
-    print(f"  INSERT = Settings menu")
-    print(f"  F12    = Panic / Exit")
-    print()
-    print(f"[*] Running... (aimbot is {'ON' if config['enabled'] else 'OFF'})")
-
-    # Main loop
     fps = 0.0
     frame_count = 0
     fps_timer = time.perf_counter()
-    running = True
+
+    # Store overlay data for main-thread rendering
+    overlay_data = {
+        "detections": [],
+        "capture_offset": (0, 0),
+        "screen_center": (0, 0),
+        "target": None,
+        "fps": 0.0,
+        "inference_ms": 0.0,
+        "enabled": False,
+    }
+
+    def update_overlay():
+        """Called in main thread to update the game overlay."""
+        if gui.game_overlay is not None:
+            gui.game_overlay.update(
+                detections=overlay_data["detections"],
+                capture_offset=overlay_data["capture_offset"],
+                screen_center=overlay_data["screen_center"],
+                target=overlay_data["target"],
+                fps=overlay_data["fps"],
+                inference_ms=overlay_data["inference_ms"],
+                enabled=overlay_data["enabled"],
+            )
 
     try:
-        while running:
+        while not stop_event.is_set():
             loop_start = time.perf_counter()
-
-            # --- Process overlay events ---
-            if not overlay.process_events():
-                break
-
-            # Process menu keyboard events
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    result = menu.handle_input(event.key)
-                    if result == "saved":
-                        print("[+] Config saved")
-                    elif result == "reset":
-                        print("[+] Config reset to defaults")
 
             # --- Hotkeys ---
             if hotkeys.is_just_pressed(config["panic_key"]):
-                print("[!] Panic key pressed - shutting down")
+                print("[!] Panic key - stopping")
+                gui.after(0, lambda: gui._on_stop())
                 break
 
             if hotkeys.is_just_pressed(config["toggle_key"]):
                 config["enabled"] = not config["enabled"]
+                new_val = config["enabled"]
+                gui.after(0, lambda v=new_val: gui.aim_enabled_var.set(v))
                 status = "ON" if config["enabled"] else "OFF"
                 print(f"[*] Aimbot: {status}")
                 if not config["enabled"]:
                     aim_engine.reset()
 
-            if hotkeys.is_just_pressed(config["menu_key"]):
-                menu.toggle()
+            # --- Update from GUI settings ---
+            capture.set_monitor(config.get("monitor_index", 1))
+            capture.set_region_size(
+                config["detection_region_width"],
+                config["detection_region_height"],
+            )
+            detector.set_confidence(config["confidence_threshold"])
+            config.update_target_classes()
 
             # --- Screen capture ---
             frame = capture.grab()
@@ -135,13 +149,6 @@ def main():
 
             # --- Detection ---
             detections = detector.detect(frame, config["target_classes"])
-
-            # Update confidence threshold if changed from menu
-            detector.set_confidence(config["confidence_threshold"])
-            capture.set_region_size(
-                config["detection_region_width"],
-                config["detection_region_height"],
-            )
 
             # --- Aim logic ---
             target = None
@@ -164,32 +171,51 @@ def main():
                 elif aim_mode == "always":
                     should_aim = True
 
-                if should_aim and target is not None and not menu.visible:
+                is_firing = input_handler.is_mouse_left_pressed()
+
+                if should_aim and target is not None:
                     dx, dy = aim_engine.compute_move(target, screen_center)
+
+                    # Apply recoil compensation while firing
+                    if is_firing:
+                        rcs_dx, rcs_dy = rcs.update(True)
+                        dx += rcs_dx
+                        dy += rcs_dy
+                    else:
+                        rcs.update(False)
+
                     input_handler.move_mouse_relative(dx, dy)
+                else:
+                    rcs.update(False)
 
                 # Triggerbot
-                if config["triggerbot_enabled"] and not menu.visible:
+                if config["triggerbot_enabled"]:
                     trig_key = config["triggerbot_key"]
                     if trig_key and input_handler.is_key_pressed(trig_key):
-                        if triggerbot.check_trigger(detections, screen_center, offset):
+                        if triggerbot.check_trigger(
+                                detections, screen_center, offset):
                             input_handler.click()
 
-            # --- Overlay render ---
-            overlay.render(
+            # --- Update GUI preview ---
+            gui.update_preview(
+                frame=frame,
                 detections=detections,
+                fps=fps,
+                inference_ms=detector.inference_time,
                 capture_offset=offset,
                 screen_center=screen_center,
                 target=target,
-                fps=fps,
-                inference_ms=detector.inference_time,
-                enabled=config["enabled"],
             )
 
-            # Render menu on top
-            if menu.visible:
-                menu.render(overlay.surface)
-                pygame.display.flip()
+            # --- Update game overlay data (rendered in main thread) ---
+            overlay_data["detections"] = detections
+            overlay_data["capture_offset"] = offset
+            overlay_data["screen_center"] = screen_center
+            overlay_data["target"] = target
+            overlay_data["fps"] = fps
+            overlay_data["inference_ms"] = detector.inference_time
+            overlay_data["enabled"] = config["enabled"]
+            gui.after(0, update_overlay)
 
             # --- FPS tracking ---
             frame_count += 1
@@ -206,12 +232,41 @@ def main():
                 if frame_time < target_frame_time:
                     time.sleep(target_frame_time - frame_time)
 
-    except KeyboardInterrupt:
-        print("\n[!] Interrupted")
+    except Exception as e:
+        print(f"[!] Bot error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        overlay.destroy()
-        config.save()
-        print("[+] Cleanup complete. Goodbye.")
+        print("[+] Bot stopped")
+
+
+def main():
+    print("=" * 50)
+    print("  CS2 AI AIMBOT")
+    print("=" * 50)
+    print()
+
+    config = Config()
+    print("[+] Config loaded")
+
+    # Create GUI
+    gui = AimbotGUI(config)
+    gui.protocol("WM_DELETE_WINDOW", gui.on_close)
+
+    # Set callbacks
+    def on_start(stop_event):
+        bot_loop(config, gui, stop_event)
+
+    gui.on_start = on_start
+    gui.on_stop = lambda: None
+
+    print("[+] GUI ready")
+    print()
+
+    gui.mainloop()
+
+    config.save()
+    print("[+] Goodbye.")
 
 
 if __name__ == "__main__":

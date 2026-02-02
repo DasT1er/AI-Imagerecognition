@@ -31,10 +31,17 @@ class ScreenCapture:
             "height": self.capture_height,
         }
 
+    def set_monitor(self, index: int):
+        """Switch to a different monitor."""
+        if 0 <= index < len(self.sct.monitors):
+            self.monitor_index = index
+            self._update_region()
+
     def set_region_size(self, width: int, height: int):
-        self.capture_width = width
-        self.capture_height = height
-        self._update_region()
+        if width != self.capture_width or height != self.capture_height:
+            self.capture_width = width
+            self.capture_height = height
+            self._update_region()
 
     def grab(self) -> np.ndarray:
         """Capture screen region and return as BGR numpy array."""
@@ -49,6 +56,22 @@ class ScreenCapture:
         raw = self.sct.grab(monitor)
         frame = np.array(raw, dtype=np.uint8)[:, :, :3]
         return frame
+
+    @staticmethod
+    def list_monitors() -> list:
+        """Return list of available monitors with info."""
+        sct = mss.mss()
+        result = []
+        for i, m in enumerate(sct.monitors):
+            result.append({
+                "index": i,
+                "left": m["left"],
+                "top": m["top"],
+                "width": m["width"],
+                "height": m["height"],
+            })
+        sct.close()
+        return result
 
     @property
     def offset(self) -> tuple:

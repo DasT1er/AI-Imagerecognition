@@ -106,8 +106,11 @@ def calculate_move_delta(current: tuple, target: tuple,
         norm = min(dist / 200, 1.0)
         factor *= ease_in_out_cubic(norm)
     elif curve == "bezier":
-        # For bezier, we apply slight randomness to factor
-        factor *= (0.85 + random.random() * 0.3)
+        # Slight randomness but never exceed 1.0 (prevents overshoot)
+        factor *= (0.80 + random.random() * 0.2)
+
+    # Never move more than the actual distance (prevents overshoot)
+    factor = min(factor, 1.0)
 
     move_x = dx * factor
     move_y = dy * factor
